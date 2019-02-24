@@ -1,0 +1,33 @@
+
+
+	<hr class="col-12">
+	<div class="container">
+		<div class="jumbotron">
+			<h1>References</h1>
+			<p>List of References for fast debugging</p>
+		</div>
+
+		<table class="table table-responsive table-bordered table-striped text-center" align='center' style="margin: 0 auto !important;width: 100% !important; ">
+			<thead>
+				<tr>
+			    {% for field in reference_fields %}
+					<th style="font-size:.8em" class='m-0 p-1'>
+						{{field }}
+					</th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				{% for reference in references %}
+				<tr>
+					{% for key,value in reference.items %}
+						<td style="font-size:.8em" class='m-0 p-1'>
+							{{value}}
+						</td>
+					{% endfor %}
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+
+	</div>

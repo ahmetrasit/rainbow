@@ -1,0 +1,36 @@
+
+
+
+	<hr class="col-12">
+	<div class="container">
+		<div class="jumbotron">
+			<h1>Tasks</h1>
+			<p>List of tasks for fast debugging</p>
+		</div>
+
+		<table class="table table-responsive table-bordered table-striped text-center" align='center' style="margin: 0 auto !important;width: 100% !important; ">
+			<thead>
+				<tr>
+			    {% for field in task_fields %}
+					<th style="font-size:.8em" class='m-0 p-1'>
+						{{field }}
+					</th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				{% for task in tasks %}
+				<tr>
+					{% for key,value in task.items %}
+						<td style="font-size:.8em" class='m-0 p-1'>
+							{{value}}
+						</td>
+					{% endfor %}
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+
+	</div>
+	<br>
+	<br>

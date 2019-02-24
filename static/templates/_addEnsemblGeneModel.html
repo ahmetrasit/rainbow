@@ -1,0 +1,50 @@
+<div class="modal fade" id="addEnsemblGeneModelModal" tabindex="-1" role="dialog" aria-labelledby="addEnsemblGeneModelModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Select release and organism to build gene model from Ensembl</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="row">
+          <div class="col-md-12 input-group">
+            <select class="form-control" name="selectRelease" id="selectRelease" onchange="updateEnsemblGenomeList()">
+              <option value="" disabled>Please wait</option>
+            </select>
+          </div>
+          <div class="col-md-12 input-group">
+            <select class="form-control" name="selectGenome" id="selectGenome">
+              <option value="" disabled>Please wait</option>
+            </select>
+          </div>
+        </div>
+
+
+        <hr>
+
+        <div class="row">
+          <div class="col-md-12 text-left text-muted" style="font-size:.8em">
+            <p>
+            Release list and genome list are updated on the fly from ftp.ensembl.org/pub.
+            </p>
+            <p>
+              Rainbow Genome Browser is tested with release-95 genome annotation.
+            </p>
+            <p>
+              You'll get an e-mail after the genome is built, if it's not already in the system. It takes ~1min per chromosome.
+            </p>
+
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button class="btn input-group-text" id="upload-button" onclick="buildGenome()">Build Genome</button>
+      </div>
+    </div>
+  </div>
+</div>

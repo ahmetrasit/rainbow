@@ -1,0 +1,123 @@
+{% load static %}
+
+<div class="modal fade" id="createReferenceModal" tabindex="-1" role="dialog" aria-labelledby="createReferenceModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data" action="/add/reference" id='reference_form'>
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Create Reference</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" onchange="referenceBodyChange()">
+          <div class="row">
+            <div class="col-md-12">
+              <small>Leave bash script empty if you just want to create a reference file.</small>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              {% csrf_token %}
+              {{ reference_form.management_form }}
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span id="ref_bash_script" class="input-group-text">Bash script:</span>
+                </div>
+                <div style="outline:0 !important" class="text-left form-control" name="ref_script" id="ref_script" required>
+                  <span id="analysisReferenceScript" class="edit p-1" style="outline:0 !important;" contenteditable>&nbsp;</span>
+                </div>
+                <input type="hidden" name="ref_script" >
+              </div>
+              <div class="row">
+                {% for form_element in reference_form.visible_fields %}
+  									<div class="form-group col-md-6">
+  										<label style="font-size:.8em" for="{{form_element.name}}">{{form_element.label}}</label>
+  										{{form_element}}
+
+  										{% for error in form_element.errors %}
+  												<div class="alert alert-danger">
+  														<strong>{{ error|escape }}</strong>
+  												</div>
+  										{% endfor %}
+  									</div>
+  							{% endfor %}
+  							{% for form_element in reference_form.hidden_fields %}
+  										{{form_element}}
+  							{% endfor %}
+
+                <div class="form-group col-md-12">
+
+                  <div class="input-group advanced_mode">
+                    <div class="custom-file">
+                      <input type="file" class="custom-file-input" id="referenceFiles" name="referenceFiles" onchange="referenceFileUpload()" multiple>
+                      <label class="custom-file-label" for="referenceFiles" id="referenceFilesLabel">Choose file(s)</label>
+                    </div>
+                  </div>
+                  <div id="referenceFilesList">
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Create Reference Data</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<script type="text/javascript">
+  var reference_advanced_mode_toggle = false
+  var valid_reference = false
+
+
+
+
+  function checkReferenceScript(script_id) {
+    latest_script = document.getElementById('analysisReferenceScript').innerHTML
+    document.getElementById('ref_raw_script').value = document.getElementById('analysisReferenceScript').innerHTML
+  }
+
+
+  function referenceBodyChange() {
+    latest_script = document.getElementById('analysisReferenceScript').innerHTML
+    document.getElementById('ref_raw_script').value = document.getElementById('analysisReferenceScript').innerHTML
+  }
+
+</script>
+<script>
+
+
+function referenceFileUpload(event) {
+  var fileSelect = document.getElementById('referenceFiles');
+  var selected_files = []
+  var files = fileSelect.files;
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    selected_files.push(file.name)
+  }
+
+  $('#referenceFilesLabel').html('Choose file(s)')
+  $('#referenceFilesList').html('')
+  if (selected_files.length == 1){
+    $('#referenceFilesLabel').html('1 file selected')
+  }else {
+    $('#referenceFilesLabel').html(selected_files.length + ' files selected')
+  }
+  d3.select('#referenceFilesList').append('ul').selectAll('li').data(selected_files).enter()
+    .append('li').style('text-align', 'left').html(function(d,i){return d})
+
+
+}
+</script>
+<script src="{% static 'js/build.js' %}"></script>

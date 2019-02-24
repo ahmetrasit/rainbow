@@ -1,0 +1,535 @@
+{% load static %}
+
+<div class="modal fade" id="createStepModal" tabindex="-1" role="dialog" aria-labelledby="createStepModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data" action="/add/step" onsubmit="checkAndPopulateFields()" id='step_form'>
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Create Step</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" onchange="bodyChange()">
+          <div class="row">
+            <div class="col-md-12">
+              <label class="switch float-right" id="step_advanced_mode">
+                <input type="checkbox">
+                <span class="slider round"><div class="text-center text-white" style="padding-top:.25em">Advanced</div> </span>
+              </label>
+            </div>
+            <div class="col-md-12">
+              <small>Type @< for input, use <b>>f_output</b> to represent a single output file</small>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              {% csrf_token %}
+              {{ step_form.management_form }}
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span id="bash_script" class="input-group-text">Bash script:</span>
+                </div>
+                <div style="outline:0 !important" class="text-left form-control" onkeyup="checkScript('analysisStepScript')" name="script" id="script" required>
+                  <span id="analysisStepScript" class="edit p-1" style="outline:0 !important;" contenteditable>&nbsp;</span>
+                </div>
+                <input type="hidden" name="script" >
+              </div>
+              <div class="row">
+                {% for form_element in step_form.visible_fields %}
+  									<div class="form-group col-md-6">
+  										<label style="font-size:.8em" for="{{form_element.name}}">{{form_element.label}}</label>
+  										{{form_element}}
+
+  										{% for error in form_element.errors %}
+  												<div class="alert alert-danger">
+  														<strong>{{ error|escape }}</strong>
+  												</div>
+  										{% endfor %}
+  									</div>
+  							{% endfor %}
+  							{% for form_element in step_form.hidden_fields %}
+  										{{form_element}}
+  							{% endfor %}
+
+                <div class="form-group col-md-12">
+
+                  <div class="input-group advanced_mode">
+                    <div class="custom-file">
+                      <input type="file" class="custom-file-input" id="stepFiles" name="stepFiles" onchange="stepFileUpload()" multiple>
+                      <label class="custom-file-label" for="stepFiles" id="stepFilesLabel">Choose file(s)</label>
+                    </div>
+                  </div>
+                  <div id="stepFilesList">
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Create Analysis Step</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="modal" id="addPlaceholder" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add placeholder</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <select id="io_options" onchange="updateInputType('io_options')">
+          </select>
+        </div>
+        <div style="display:none" id="io_input_type" class='inputs'>
+          <select>
+          </select>
+        </div>
+        <div style="display:none" id="io_selectfield" class='inputs'>
+          <select id="io_inputfieldselect">
+          </select>
+        </div>
+        <div style="display:none" id="io_selectfield2" class='inputs'>
+          <select id="io_inputfieldselect2">
+          </select>
+        </div>
+        <div style="display:none" id="io_inputfield" class='inputs'>
+          <input id="io_inputfieldinput" type="text" class="form-control cp-user-input">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="saveAddInCmd('analysisStepScript')">Convert to add-in command</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+<script type="text/javascript">
+  var step_advanced_mode_toggle = false
+  var valid_step = false
+  //i:input, s:select
+  var step_dict = {
+      'major':data_categories,
+      'parameter':['cpu'],
+      'type':{{types_for_step|safe}}
+    }
+
+  //s for select, i for input
+  var input_types = {
+    'fs':'s_major_value',
+    'fm':'s_major_value',
+    'sy':'s_parameter_value',
+    'is':'i_value',
+    'ip':'i_name',
+    'ds':'s_type_value',
+    'dp':'s_type_name',
+  }
+
+  var input_descriptions = {
+    'fs':'One single file at a time for one or more selected files',
+    'fm':'All selected files at the same time',
+    'sy' :'System parameter, like available CPU, etc.',
+    'is':'Hardcoded text input',
+    'ip':'Text input that will be entered just before submitting a task',
+    'ds':'Reference file to be selected right now',
+    'dp':'Reference file to be selected just before submitting a task',
+  }
+
+  function updateSelect2() {
+    var select = document.getElementById('io_options')
+    var selected_value = select.options[select.selectedIndex].value;
+    var cmd_fields = input_types[selected_value].split('_')
+    if (cmd_fields.slice(-1)=='value') {
+      var select = document.getElementById('io_inputfieldselect')
+      var selected_value = select.options[select.selectedIndex].value;
+      var options = step_dict['type'][selected_value]
+      if (options) {
+        d3.select('#io_selectfield2').style('display', 'block')
+        d3.select('#io_selectfield2').select('select').selectAll('option').remove()
+        d3.select('#io_selectfield2').select('select').selectAll('option').data(options).enter()
+            .append('option').text(function(d){return d})
+      }
+    }
+
+
+  }
+
+  function createSelectFieldForInputType(fields) {
+    console.log(fields);
+    var type = fields[0]
+    console.log(type);
+    var action = fields[1]
+    console.log(action);
+    var options
+    if (type == 'type') {
+      options = Object.keys(step_dict[type])
+    }else {
+      options = step_dict[type]
+    }
+
+    console.log(options);
+
+    d3.select('#io_inputfield').style('display', 'none')
+    d3.select('#io_selectfield').style('display', 'none').select('select').selectAll('option').remove()
+    d3.select('#io_selectfield2').style('display', 'none').select('select').selectAll('option').remove()
+    if (action == 'value') {
+      d3.select('#io_selectfield').style('display', 'block')
+      d3.select('#io_selectfield').select('select').on('change', updateSelect2).selectAll('option').data(options).enter()
+          .append('option').text(function(d){return d})
+      updateSelect2()
+    }else if (action == 'name') {
+      d3.select('#io_selectfield').style('display', 'block')
+      d3.select('#io_selectfield').select('select').selectAll('option').data(options).enter()
+          .append('option').text(function(d){return d})
+      d3.select('#io_inputfield').style('display', 'block')
+      d3.select('#io_inputfieldinput').attr('placeholder', 'Provide a user dialogue value')
+    }else {
+      alert('Wrong/missing configuration, please contact admin');
+    }
+  }
+
+
+  function createInputFieldForInputType(action) {
+    d3.selectAll('.inputs').style('display', 'none')
+    select_field = 'io_inputfield'
+    d3.select('#io_inputfield').style('display', 'block')
+  }
+
+
+  function saveAddInCmd(script_id) {
+    var cmd = '&lt;'
+    var select = document.getElementById('io_options')
+    var selected_value = select.options[select.selectedIndex].value;
+    cmd += selected_value
+    cmd_fields = input_types[selected_value].split('_')
+    if (cmd_fields[0]=='s') {
+      var select = document.getElementById('io_inputfieldselect')
+      var selected_value = select.options[select.selectedIndex].value;
+      cmd += '_' + selected_value
+      if (cmd_fields[2]=='value') {
+        if (d3.select('#io_selectfield2').style('display') != 'none') {
+          var select = document.getElementById('io_inputfieldselect2')
+          var selected_value = select.options[select.selectedIndex].value;
+          cmd += '_' + selected_value
+        }
+        document.getElementById('analysisStepScript').innerHTML = document.getElementById('analysisStepScript').innerHTML.replace("@&lt;", cmd)
+        $('#addPlaceholder').modal('hide')
+        $('#createStepModal').modal('show')
+      }else if (cmd_fields[2]=='name') {
+        var input_value = document.getElementById('io_inputfieldinput').value.trim().replace(/\W+/g, '-')
+        if (input_value.length < 3) {
+          alert('Please provide at least 3 characters long input.')
+        }else {
+          cmd += '_' + input_value
+          document.getElementById('analysisStepScript').innerHTML = document.getElementById('analysisStepScript').innerHTML.replace("@&lt;", cmd)
+          $('#addPlaceholder').modal('hide')
+          $('#createStepModal').modal('show')
+        }
+      }else {
+        alert('Something wrong, please contact admin');
+      }
+
+    }else if (cmd_fields[0]=='i') {
+      var input_value = document.getElementById('io_inputfieldinput').value.trim().replace(/\W+/g, '-')
+      if (input_value.length < 3) {
+        alert('Please provide at least 3 characters long input.')
+      }else {
+        cmd += '_' + input_value
+        document.getElementById('analysisStepScript').innerHTML = document.getElementById('analysisStepScript').innerHTML.replace("@&lt;", cmd)
+        $('#addPlaceholder').modal('hide')
+        $('#createStepModal').modal('show')
+      }
+    }else {
+      alert('Something wrong, please contact admin');
+    }
+    document.getElementById('raw_script').value = document.getElementById('analysisStepScript').innerHTML
+
+  }
+
+
+  function checkScript(script_id) {
+    latest_script = document.getElementById('analysisStepScript').innerHTML
+
+    if (latest_script.match('@&lt;')) {
+      humanize()
+    }
+    document.getElementById('raw_script').value = document.getElementById('analysisStepScript').innerHTML
+    updateInputOutputRelationship()
+  }
+
+  function humanize(){
+    options = d3.select('#io_options')
+    options.selectAll('option').remove()
+    new_options = options.selectAll('option').data(Object.keys(input_descriptions)).enter()
+      .append('option')
+    new_options.text(function(d){return input_descriptions[d]})
+    new_options.attr('value', function(d){return d})
+    updateInputType()
+    $('#createStepModal').modal('hide')
+    $('#addPlaceholder').modal('show')
+  }
+
+  function updateInputType() {
+    var func_dict = {'s':createSelectFieldForInputType, 'i':createInputFieldForInputType}
+    select = document.getElementById('io_options')
+    selected_value = select.options[select.selectedIndex].value;
+    cmd_fields = input_types[selected_value].split('_')
+    func_dict[cmd_fields[0]](cmd_fields.slice(1))
+  }
+
+
+
+  function checkAndPopulateFields() {
+//
+
+  }
+
+
+  function checkAllInputs(classname) {
+    var haveInput = true
+    var user_inputs = document.getElementsByClassName(classname);
+    for(var i = 0; i < user_inputs.length; i++)
+    {
+      if (user_inputs[i].value.replace(/^\s+|\s+$/g, '').length > 0) {
+        //
+      }else {
+        haveInput = false
+      }
+    }
+    [atLeastOneIO, danger, checkedScript] = validateScript('rawStepCommand')
+    if (haveInput & atLeastOneIO & !danger) {
+      $('#createBashStep').prop('disabled', false)
+    }else {
+      $('#createBashStep').prop('disabled', true)
+    }
+  }
+
+  function htmlDecode(input){
+    var e = document.createElement('div');
+    e.innerHTML = input;
+    return e.childNodes[0].nodeValue;
+  }
+
+
+  function updateInputOutputRelationship() {
+    var script = document.getElementById('analysisStepScript').innerHTML
+    var relationship_select = document.getElementById('input_output_relationship')
+
+    function intersection(list1, list2) {
+      return list1.filter(x => list2.includes(x));
+    }
+
+    function has_fm() {
+      if (script.includes('&lt;fm_')) {
+        return [3, 4, 5]
+      }
+      return [0, 1, 2]
+    }
+
+    function has_fs() {
+      if (script.includes('&lt;fs_')) {
+        return [1, 2]
+      }
+      return [0, 3, 4, 5]
+    }
+
+    function no_of_outputs() {
+      var selected_index = document.getElementById('no_of_outputs').selectedIndex
+      if (selected_index == 1) {
+        return [1, 3]
+      }else if (selected_index == 2) {
+        return [2, 4, 5]
+      }else {
+        return [0]
+      }
+    }
+
+    function has_f_output() {
+      if (script.includes('&gt;f_output')) {
+        return [1, 3, 5]
+      }else{
+        return [0, 2, 4]
+      }
+    }
+
+    for (var i = 0; i < 6; i++) {
+      relationship_select.options[i].disabled=true
+    }
+
+    var selectedIndex = [has_fm(), has_fs(), no_of_outputs(), has_f_output()].reduce(intersection)
+    if (selectedIndex.length == 1) {
+      relationship_select.options[selectedIndex].disabled=false
+      relationship_select.selectedIndex = selectedIndex[0]
+      document.getElementById('input_output_relationship').parentNode.style.background = 'white'
+      return selectedIndex[0]
+    }else{
+      relationship_select.selectedIndex = 0
+      document.getElementById('input_output_relationship').parentNode.style.background = 'lightgray'
+      return 0
+    }
+
+  }
+
+  function updateInputOutputRelationship_() {
+    var script = document.getElementById('analysisStepScript').innerHTML
+    var relationship_select = document.getElementById('input_output_relationship')
+    for (var i = 1; i < 6; i++) {
+      relationship_select.options[i].disabled=false
+    }
+    var all_enabled = [1, 2, 3, 4, 5]
+
+    //first, check number of inputs based on the script
+    if (script.includes('&lt;fm_')) { //means step expects many inputs
+      if (script.includes('&lt;fs_')) {
+        alert('Sorry, you cannot have <fm_* and <fs_* at the same time.')
+        valid_step = False
+      }else {
+        var enabled = [3, 4, 5]
+        for (var i = 1; i < 6; i++) {
+          if (enabled.indexOf(i) < 0) {
+            relationship_select.options[i].disabled=true
+          }
+        }
+        if (enabled.indexOf(relationship_select.selectedIndex) < 0) {
+          relationship_select.selectedIndex = 2
+        }
+      }
+    }else if (script.includes('&lt;fs_')) {
+      var enabled = [1, 2]
+      for (var i = 1; i < 6; i++) {
+        if (enabled.indexOf(i) < 0) {
+          relationship_select.options[i].disabled=true
+        }
+      }
+      if (enabled.indexOf(relationship_select.selectedIndex) < 0) {
+        relationship_select.selectedIndex = 1
+      }
+    }else {
+      for (var i = 1; i < 6; i++) {
+        relationship_select.options[i].disabled=true
+      }
+      relationship_select.selectedIndex=0
+    }
+
+    //second, check number of outputs based on the no_of_outputs dropdown
+    var no_of_outputs_select = document.getElementById('no_of_outputs')
+    if (no_of_outputs_select.selectedIndex == 1) {
+      var enabled = [1, 3]
+      for (var i = 1; i < 6; i++) {
+        if (enabled.indexOf(i) < 0) {
+          relationship_select.options[i].disabled=true
+        }
+      }
+      if (enabled.indexOf(relationship_select.selectedIndex) < 0) {
+        relationship_select.selectedIndex = 0
+      }
+    }else if (no_of_outputs_select.selectedIndex == 2) {
+      var enabled = [2, 4, 5]
+      for (var i = 1; i < 6; i++) {
+        if (enabled.indexOf(i) < 0) {
+          relationship_select.options[i].disabled=true
+        }
+      }
+      if (enabled.indexOf(relationship_select.selectedIndex) < 0) {
+        relationship_select.selectedIndex = 0
+      }
+    }else {
+      for (var i = 1; i < 6; i++) {
+        relationship_select.options[i].disabled=true
+      }
+      relationship_select.selectedIndex=0
+    }
+
+    //third, check script again to see if there is >f_output, which means it's either 1:1, *>1, or *:*
+    if (script.includes('&gt;f_output')) { //means step provides single input at the end
+      var enabled = [1, 3, 5]
+      for (var i = 1; i < 6; i++) {
+        if (enabled.indexOf(i) < 0) {
+          relationship_select.options[i].disabled=true
+        }
+      }
+      if (enabled.indexOf(relationship_select.selectedIndex) < 0) {
+        relationship_select.selectedIndex = 0
+      }
+    }else {
+      var enabled = [2, 4]
+      for (var i = 1; i < 6; i++) {
+        if (enabled.indexOf(i) < 0) {
+          relationship_select.options[i].disabled=true
+        }
+      }
+      if (enabled.indexOf(relationship_select.selectedIndex) < 0) {
+        relationship_select.selectedIndex = 0
+      }
+    }
+    if (relationship_select.selectedIndex == 0) {
+      document.getElementById('input_output_relationship').parentNode.style.background = 'lightgray'
+    }else {
+      document.getElementById('input_output_relationship').parentNode.style.background = 'white'
+    }
+
+  }
+
+
+  $( "#step_advanced_mode" ).click(function() {
+    step_advanced_mode_toggle = !step_advanced_mode_toggle
+    if (step_advanced_mode_toggle) {
+      $('.advanced_mode').parent().collapse('show')
+    }else {
+      $('.advanced_mode').parent().collapse('hide')
+    }
+  });
+
+  $('.advanced_mode').parent().addClass('collapse')
+
+
+
+
+  function bodyChange() {
+    updateInputOutputRelationship()
+  }
+
+</script>
+<script>
+var selected_files
+var file_types
+
+function stepFileUpload(event) {
+  var fileSelect = document.getElementById('stepFiles');
+  selected_files = []
+  var files = fileSelect.files;
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    selected_files.push(file.name)
+  }
+
+  $('#stepFilesLabel').html('Choose file(s)')
+  $('#stepFilesList').html('')
+  if (selected_files.length == 1){
+    $('#stepFilesLabel').html('1 file selected')
+  }else {
+    $('#stepFilesLabel').html(selected_files.length + ' files selected')
+  }
+  d3.select('#stepFilesList').append('ul').selectAll('li').data(selected_files).enter()
+    .append('li').style('text-align', 'left').html(function(d,i){return d})
+
+
+}
+</script>
+<script src="{% static 'js/build.js' %}"></script>

@@ -1,0 +1,57 @@
+<ul class="nav nav-pills nav-filled nav-justified" id="fileType" role="tablist">
+  <li class="nav-item">
+    <a class="nav-link active" id="single-tab" data-toggle="tab" href="#single" role="tab" aria-controls="single" aria-selected="true" onclick="populateSingleSampleTab()">All Files for a Single Sample</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="multiple-tab" data-toggle="tab" href="#multiple" role="tab" aria-controls="multiple" aria-selected="false" onclick="populateMultipleSamplesTab()">One File per Sample</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="demultiplex-tab" data-toggle="tab" href="#demultiplex" role="tab" aria-controls="demultiplex" aria-selected="false" onclick="populateDemultiplexTab()">Needs to be Debarcoded First</a>
+  </li>
+</ul>
+<div class="tab-content" id="fileTypeContent">
+  <div class="tab-pane fade show active border-dark" id="single" role="tabpanel" aria-labelledby="single-tab">
+    <div class="row" id='single-tab-content'>
+      <div class="col-12 text-left h6 mt-3">
+        Please select files first.
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane fade" id="multiple" role="tabpanel" aria-labelledby="multiple-tab">
+    <div class="row ">
+      <div class="col-12 text-left h6 mt-3">
+        Each fastq.gz file belongs to a different sample:
+      </div>
+    </div>
+  </div>
+  <div class="tab-pane fade" id="demultiplex" role="tabpanel" aria-labelledby="demultiplex-tab">
+    <div class="row noFile">
+      <div class="col-12 text-left h6 mt-3">Please select files first.</div>
+    </div>
+    <div class="row moreThanOneFile">
+      <div class="col-12 text-left h6 mt-3">Selected fastq.gz file(s) contain following barcodes for different samples</div>
+    </div>
+    <div class="row moreThanOneFile">
+      <div class="col-md-2 text-left ">Sample Name</div>
+      <div class="col-md-2 text-left ">Barcode</div>
+      <div class="col-md-2 text-left ">Sample Type</div>
+      <div class="col-md-2 text-left ">Genotype</div>
+      <div class="col-md-2 text-left ">Description</div>
+      <div class="col-md-2 text-left"><button type="button" class="btn btn-block btn-outline-success btn-sm smaller-font mb-0 mr-0" onclick="addIndexToMultiplexTab()">Add Barcode</button></div>
+    </div>
+    <div class="form-row moreThanOneFile mt-1">
+      <div class="form-group col-md-2 text-left">
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <span class="input-group-text text-white" id="basic-addon1" onclick="deleteRow(this)" style="background-color:red"><i class="fas fa-trash-alt smaller-font"></i></span>
+          </div>
+          <input type="text" class="form-control" name="sample_name" id="sample_name" placeholder="Sample name" aria-label="Sample name" aria-describedby="basic-addon1">
+        </div>
+      </div>
+      <div class="form-group col-md-2 text-left"><input type="text" class="form-control" name="barcode" id="barcode" placeholder="Barcode sequence"></div>
+      <div class="form-group col-md-2 text-left"><select class="form-control" name="sample_type" id="sample_type"></select></div>
+      <div class="form-group col-md-2 text-left"><select class="form-control" name="genotype" id="genotype"></select></div>
+      <div class="form-group col-md-4 text-left"><input type="text" class="form-control" name="description" id="description" placeholder="Description for this sample"></div>
+    </div>
+  </div>
+</div>

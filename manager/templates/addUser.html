@@ -1,0 +1,96 @@
+{% extends 'templates/master.html' %}
+{% load static %}
+
+
+
+	<title>{% block title %}Create User Accounts{% endblock %}</title>
+
+	{% block body %}
+	<div class="container">
+		<div class="jumbotron">
+			<h1>Create User Account</h1>
+			<p>You can create user account and assign roles.</p>
+		<form method="post" action="/add/user">
+			{% csrf_token %}
+	    {{ form.management_form }}
+			<div class="row">
+		    {% for form_element in form %}
+						<div class="form-group col-md-2">
+							<label style="font-size:.8em" for="{{form_element.name}}">{{form_element.label}}</label>
+							{{form_element}}
+							{% for error in form_element.errors %}
+									<div class="alert alert-danger">
+											<strong>{{ error|escape }}</strong>
+									</div>
+							{% endfor %}
+						</div>
+				{% endfor %}
+			</div>
+
+			<div class="row">
+				<div class="col-md-12 form-group">
+						<button type="submit" class="btn btn-sm btn-block btn-primary">Create User Account</button>
+				</div>
+			</div>
+
+		</form>
+
+		</div>
+		{% if 'success' in message%}
+			<div class="text-success">
+					{{message}}
+			</div>
+		{% else %}
+		<div class="text-warning">
+				{{message}}
+		</div>
+		{% endif %}
+	</div>
+
+
+
+
+	<div class="row">
+		<div class="col-md-1">
+		</div>
+    {% for field in users_fields %}
+		<div class="col-md-2">
+			<label><b>{{field|title }}</b></label>
+		</div>
+		{% endfor %}
+
+	</div>
+
+	{% for user in users %}
+	<div class="row">
+		<div class="col-md-1">
+		</div>
+			{% for key,value in user.items %}
+				<div class="col-md-2">
+					{{value}}
+				</div>
+				{% endfor %}
+				<div class="col-md-2">
+					edit
+				</div>
+	</div>
+	{% endfor %}
+
+
+
+
+
+
+
+
+
+
+	{% endblock %}
+
+
+
+
+	{% block afterbody %}
+
+
+	{% endblock %}

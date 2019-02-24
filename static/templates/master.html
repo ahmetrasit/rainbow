@@ -1,0 +1,160 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="Ahmet R Ozturk">
+
+    <!-- Bootstrap CSS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap2-toggle.min.css' %}">
+
+    <!-- <script src="https://d3js.org/d3.v5.min.js"></script> -->
+    <script src="{% static 'js/d3.v5.min.js' %}"></script>
+    <script src="{% static 'js/rainbow.js' %}"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+
+    <link rel="apple-touch-icon" sizes="57x57" href="{% static 'img/favicon/apple-icon-57x57.png' %}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{% static 'img/favicon/apple-icon-60x60.png' %}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{% static 'img/favicon/apple-icon-72x72.png' %}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{% static 'img/favicon/apple-icon-76x76.png' %}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{% static 'img/favicon/apple-icon-114x114.png' %}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{% static 'img/favicon/apple-icon-120x120.png' %}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{% static 'img/favicon/apple-icon-144x144.png' %}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{% static 'img/favicon/apple-icon-152x152.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/favicon/apple-icon-180x180.png' %}">
+    <link rel="icon" type="image/png" sizes="192x192"  href="{% static 'img/favicon/android-icon-192x192.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{% static 'img/favicon/favicon-96x96.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'img/favicon/manifest.json' %}">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <title>{% block title %}{% endblock %}</title>
+
+    <script type="text/javascript">
+
+
+    </script>
+    {% block head %}{% endblock %}
+  </head>
+  <body style="font-family:sans-serif"  onload="initializeRainbow()">
+    <div class="fluid-container">
+
+      <nav class="navbar navbar-expand-sm navbar-dark justify-content-center p-0 m-0" style="background-color:LightSteelBlue ">
+        <a class="navbar-brand text-center" href="/"> Rainbow Genome Browser </a>
+      </nav>
+
+
+      <nav class="navbar navbar-expand-sm navbar-light bg-light p-0 mb-1">
+        <div class="collapse navbar-collapse justify-content-center">
+          <div class="container pl-2">
+            <div class="row" id="ref_div">
+              <ul class="navbar-nav mr-auto mt-1 mt-lg-0 pt-2">
+              {% if user.is_authenticated %}
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle col-md-1" data-toggle="dropdown">Build<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+
+                    <li><a class="nav-link text-primary" href="#addEnsemblGeneModelModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Ensembl Gene Model</a></li>
+                    <li><a class="nav-link text-primary" href="#addBEDFilesModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Add Data in BED format</a></li>
+                    <li><a class="nav-link text-primary" href="#addGeneModelModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Custom Gene Model</a></li>
+                  </ul>
+                </li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle col-md-1" data-toggle="dropdown">Change<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a class="nav-link text-primary" href="#switchGeneModelModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Change Genome / Version</a></li>
+                  </ul>
+                </li>
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle col-md-1" data-toggle="dropdown">Share<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a href="\er/">Current Browser</a></li>
+                    <li role="separator" class="divider"></li>
+                    <li><a href="\er/">Gene Model</a></li>
+                    <li><a href="\lm/">Gene Annotation</a></li>
+                    <li><a href="\lm/">Data</a></li>
+                    <li><a href="\lm/">Data Annotation</a></li>
+                  </ul>
+                </li>
+                <a href="\about/" class=" col-md-2">Export</b></a>
+              {% endif %}
+                <a href="\about/" class=" col-md-1">About</b></a>
+              </ul>
+
+              <div class="nav-item">
+                {% if user.is_authenticated %}
+
+                  <a href="#">
+                    {{user.username}} {{ user_rank }}
+                  </a>
+                  <a href="#">
+                    <span class="badge badge-warning align-top" style="font-size:.5em">{{user_notification}}</span>
+                  </a>
+                  <a href="{% url 'logout' %}">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </a>
+
+                {% else %}
+                <form class="form-inline my-sm-1" id="login-form" method="post" action="{% url 'login' %}">
+                  {% csrf_token %}
+                  <input class="form-control form-control-sm mr-sm-1" type="username" placeholder="username" aria-label="username" name="username">
+                  <input class="form-control form-control-sm mr-sm-1" type="password" placeholder="password" aria-label="password" name="password">
+                  <button class="btn btn-sm btn-outline-success my-2 my-sm-0" type="submit">Login</button>
+                </form>
+                  {% if form.errors %}
+                      <p class=" label label-danger">
+                          Your username and password don't match.
+                          Please try again.
+                      </p>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+    </div>
+    <div class="text-center">
+      <small style="font-size:1.1em"></small>
+    </nav>
+    <div class="container text-center">
+      {% if user.is_authenticated %}
+        {% include "templates/_addBEDFilesModal.html" %}
+
+        {% include "templates/_addGeneModel.html" %}
+        {% include "templates/_addEnsemblGeneModel.html" %}
+        {% include "templates/_switchGeneModelModal.html" %}
+        {% include "templates/_addModelTrackModal.html" %}
+
+
+
+        {% block body %}{% endblock %}
+      {% else %}
+
+
+      {% endif %}
+
+
+
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="{% static 'js/fileUpload.js' %}"></script>
+    <script type="text/javascript">
+
+    </script>
+
+  </body>
+  {% block afterbody %}{% endblock %}
+</html>

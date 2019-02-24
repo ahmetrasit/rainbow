@@ -1,0 +1,145 @@
+::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  font-size: .8em;
+}
+::-moz-placeholder { /* Firefox 19+ */
+  font-size: .8em;
+}
+:-ms-input-placeholder { /* IE 10+ */
+  font-size: .8em;
+}
+:-moz-placeholder { /* Firefox 18- */
+  font-size: .8em;
+}
+
+
+.smaller-font{
+  font-size:.8em
+}
+
+
+.btn-color-red {
+  color: #FFFFFF;
+  background-color: #ff0000;
+  border-color: #ff0000;
+}
+
+
+.btn-color-green {
+  color: #FFFFFF;
+  background-color: #008000;
+  border-color: #008000;
+}
+
+
+.btn-color-dark {
+  color: #FFFFFF;
+  background-color: #0a3d62;
+  border-color: #130269;
+}
+
+
+.btn-color-gray {
+  color: #FFFFFF;
+  background-color: #3c6382;
+  border-color: #130269;
+}
+
+
+.btn-color-light {
+  color: #FFFFFF;
+  background-color: #4a69bd;
+  border-color: #130269;
+}
+
+
+.btn-color-blue-light {
+  color: #FFFFFF;
+  background-color: #60a3bc;
+  border-color: #130269;
+}
+
+
+.btn-color-blue {
+  color: #FFFFFF;
+  background-color: #0c2461;
+  border-color: #130269;
+}
+
+
+.btn-color-green-light {
+  color: #FFFFFF;
+  background-color: #00b894;
+  border-color: #130269;
+}
+
+
+.btn-color-yellow {
+  color: #FFFFFF;
+  background-color: #fdcb6e;
+  border-color: #130269;
+}
+
+
+.text-color-dark {
+  color: #0a3d62;
+  border-color: #0a3d62;
+}
+
+
+.text-color-gray {
+  color: #3c6382;
+  border-color: #3c6382;
+}
+
+
+.text-color-light {
+  color: #4a69bd;
+  border-color: #4a69bd;
+}
+
+
+.text-color-blue-light {
+  color: #60a3bc;
+  border-color: #60a3bc;
+}
+
+
+.text-color-blue {
+  color: #0c2461;
+  border-color: #0c2461;
+}
+
+
+.text-color-green-light {
+  color: #00b894;
+  border-color: #00b894;
+}
+
+
+.text-color-yellow {
+  color: #fdcb6e;
+  border-color: #fdcb6e;
+}
+
+
+.no-border {
+    border: 0;
+    box-shadow: none;
+}
+
+
+.modal {
+  overflow-y:auto !important;
+}
+
+
+.arrow{
+		stroke-width:3;
+		stroke:darkslategray;
+    fill:darkslategray;
+	}
+
+.arrowHead{
+    fill:darkslategray;
+		stroke:darkslategray;
+	}

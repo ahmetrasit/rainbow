@@ -1,0 +1,99 @@
+{% extends 'templates/master.html' %}
+{% load static %}
+
+
+
+	<title>{% block title %}Rainbow Genome Browser{% endblock %}</title>
+
+	{% block body %}
+			{% if user.username == 'admin'%}
+				<div class="col-md-12"  id='row_svg'>
+						<a href="/add/user" role="button" class="btn btn-lg btn-warning btn-block">Add Users</a>
+						<h5>{{user_count_message}}</h5>
+				</div>
+			{% endif %}
+
+
+		<div id="rainbow" style="position: absolute;left:0;right:0;margin:auto;" >
+			<div style="position:absolute; left:20px; top:0; z-index:999" class="row">
+				<div class="form-check">
+				  <input class="form-check-input" type="checkbox" value="" id="editCheckbox" onchange="toggleEditMode()">
+				  <label class="form-check-label" for="editCheckbox">
+				    Edit
+				  </label>
+				</div>
+				<div class="input-group">
+						<select class="custom-select" id="chrom_list" style="font-size:.9em" onchange="changeChromosome()">
+						</select>
+				</div>
+				<div class="input-group">
+						<select class="custom-select" id="selectResolution" style="font-size:.9em" onchange="changeResolution()">
+							<option value="low">low</option>
+							<option value="mid" selected>mid</option>
+							<option value="high">high</option>
+							<option value="ultra">ultra</option>
+						</select>
+				</div>
+
+
+			</div>
+		</div>
+
+
+
+
+	{% endblock %}
+
+
+
+
+	{% block afterbody %}
+	<script type="text/javascript">
+
+
+	</script>
+
+	<style>
+
+	.node circle {
+	  fill: #fff;
+	  stroke: steelblue;
+	  stroke-width: 3px;
+	}
+
+	.waiting circle {
+	  stroke: green;
+		stroke-width: 2px;
+	  stroke-dasharray:.15em;
+	}
+
+	.node text {
+	  font: 12px sans-serif;
+	}
+
+	.link {
+	  fill: none;
+	  stroke: #ccc;
+	  stroke-width: 2px;
+	}
+
+	.grid line{
+		stroke: lightgrey;
+	  stroke-opacity: 0.7;
+	  shape-rendering: crispEdges;
+	}
+
+	.grid path {
+	  stroke-width: 0;
+	}
+
+	.secondary {
+		display:none
+	}
+
+
+</style>
+<body>
+
+
+	{% endblock %}
