@@ -1,4 +1,10 @@
-//getTrackData is commented
+//disable scrolling using arrow keys
+window.addEventListener("keydown", function(e) {
+    // space and arrow keys
+    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+        e.preventDefault();
+    }
+}, false);
 
 
 $(window).resize(function () {
@@ -32,11 +38,12 @@ var pi = Math.PI
 var colors = ['brown', 'red', 'orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal']
 var resolutions = {'low':800*1.5, 'mid':1280*1.5, 'high':2880*1.5, 'ultra':5120*1.5}
 var properties = {
-  chrom:null,
-  chrom_len:null,
-  chrom_list:new Set([]),
+  chrom : null,
+  chrom_len : null,
+  chrom_list : new Set([]),
   resolution : 'mid',
   width_height_ratio : 1.5,
+  zoom_max : null,
   width : getWidth(),
   big_arc_start : 0,
   big_arc_end : 0,
@@ -53,6 +60,7 @@ var properties = {
   set_no_tracks : null,
   curr_no_tracks : 0,
   radScale : null,
+  big_locked : false,
 }
 
 var edit = {
@@ -96,6 +104,41 @@ function initializeModalListeners(){
   $('#addBEDFilesModal').on('show.bs.modal', function (e) {
     updateSelectGenomeRelease()
   })
+
+  //move active arc cursor and change zoom level
+  $(document).keyup(function(e) {
+    //only works when active one is locked, and locks others as well
+    if (properties[properties['latest_zoom'] + '_locked']) {
+       properties['big_locked'] = true
+       properties['mid_locked'] = true
+
+       if (e.which === 39) {        //right
+         properties['genome_pos'] += properties['big_zoom']/2
+       }else if (e.which === 37) {  //left
+         properties['genome_pos'] -= properties['big_zoom']/2
+       }else if (e.which === 38) {  //up
+         if (properties['big_zoom'] <= properties['big_zoom_max']/2) {
+            properties['big_zoom_coef'] *= .5
+            properties['big_zoom'] *= 2
+            properties['big_zoom_rad'] = Math.PI / properties['big_zoom_coef']
+         }
+
+       }else if (e.which === 40) {  //down
+         properties['big_zoom_coef'] *= 2
+         properties['big_zoom'] *= .5
+         properties['big_zoom_rad'] = Math.PI / properties['big_zoom_coef']
+       }
+
+       g['mid_arc'].selectAll("path").remove()
+       for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
+         plotMidArc(properties['genome_pos']-properties['big_zoom'], properties['genome_pos']+properties['big_zoom'], track_order, properties['tracks'][track_order])
+       }
+       var pos_in_rad = properties['radScale'].invert(properties['genome_pos'])
+       plotBigCursor(pos_in_rad)
+
+    }
+
+    });
 }
 
 
@@ -186,9 +229,14 @@ function processTrackData(track_order, data){
   }
 
   if (track_order == 0) {
+    properties['big_zoom_coef'] = 100
     properties['chrom_len'] = parseInt(temp['chromosome_length'])
+    properties['big_zoom_max'] = properties['chrom_len'] / properties['big_zoom_coef']
+    properties['big_zoom_max_rad'] = Math.PI / properties['big_zoom_coef']
+    properties['big_zoom'] = properties['big_zoom_max']
+    properties['big_zoom_rad'] = properties['big_zoom_max_rad']
     properties['radScale'] = d3.scaleLinear().domain([-0.5 * Math.PI * .85 , 0.5 * Math.PI]).range([0, properties['chrom_len']]).clamp(true)
-    console.log('chrom_len', properties['chrom_len']);
+    //console.log('chrom_len', properties['chrom_len']);
 
   }
 
@@ -211,6 +259,8 @@ function plotAll() {
   if (properties['curr_no_tracks'] < properties['maximum_no_tracks']) {
     plotAddTrack(properties['tracks'].length)
   }
+  g['big_arc'].on('mousemove', updateMidArc)
+  g['big_arc'].on('click', toggleBigLock)
 
 }
 
@@ -349,24 +399,60 @@ function showShortName(){
 }
 
 
-function calcAngle(x, y) {
-  return Math.atan(y/x);
+function toggleBigLock() {
+  properties['big_locked'] = !properties['big_locked']
+  if (properties['big_locked']) {
+    properties['latest_zoom'] = 'big'
+  }
 }
 
 
-function updateMidArc() {
-  var x;
-  var y;
-  [x,y] = d3.mouse(this);
-
-  var x = x
-  var y = -y
-  var pos_in_rad = Math.atan(x/y)
-  var genome_pos = properties['radScale'](pos_in_rad)
-  g['mid_arc'].selectAll("path").remove()
-  for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
-    plotMidArc(genome_pos-100000, genome_pos+100000, track_order, properties['tracks'][track_order])
+function toggleMidLock() {
+  properties['mid_locked'] = !properties['mid_locked']
+  if (properties['mid_locked']) {
+    properties['latest_zoom'] = 'mid'
   }
+}
+
+
+
+function updateMidArc() {
+  if (!properties['big_locked']) {
+    var [x,y] = d3.mouse(this);
+    var x = x
+    var y = -y
+    var pos_in_rad = Math.atan(x/y)
+    var genome_pos = properties['radScale'](pos_in_rad)
+    properties['genome_pos'] = genome_pos
+    g['mid_arc'].selectAll("path").remove()
+    for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
+      plotMidArc(genome_pos-properties['big_zoom'], genome_pos+properties['big_zoom'], track_order, properties['tracks'][track_order])
+    }
+    plotBigCursor(pos_in_rad)
+  }
+}
+
+
+function plotBigCursor(pos_in_rad) {
+  d3.selectAll('.big_cursor').remove()
+  var arc_height = -(properties['tracks'][0]['outer'] - properties['tracks'][0]['inner'])
+
+  var cursorLeftArc =  d3.arc().innerRadius(properties['tracks'][0]['inner']+arc_height).outerRadius(properties['tracks'][properties['tracks'].length-1]['outer'] - 3*arc_height)
+      .startAngle(pos_in_rad - 2*properties['big_zoom_max_rad']).endAngle(pos_in_rad - properties['big_zoom_rad'])
+  drawBlocks('big_arc', "big_cursor cursor_border_side cursor_border_left", [[0,resolutions[properties['resolution']] ]], 'lightgray', 'black',  1, cursorLeftArc)
+
+  var cursorRightArc =  d3.arc().innerRadius(properties['tracks'][0]['inner']+arc_height).outerRadius(properties['tracks'][properties['tracks'].length-1]['outer']- 3*arc_height)
+      .startAngle(pos_in_rad + properties['big_zoom_rad']).endAngle(pos_in_rad + 2*properties['big_zoom_max_rad'])
+  drawBlocks('big_arc', "big_cursor cursor_border_side cursor_border_right", [[0,resolutions[properties['resolution']] ]], 'lightgray', 'black',  1, cursorRightArc)
+
+  var cursorBorderArc =  d3.arc().innerRadius(properties['tracks'][0]['inner']+arc_height).outerRadius(properties['tracks'][properties['tracks'].length-1]['outer'] - 3*arc_height)
+      .startAngle(pos_in_rad - 2*properties['big_zoom_max_rad']).endAngle(pos_in_rad + 2*properties['big_zoom_max_rad'])
+  drawBlocks('big_arc', "big_cursor cursor_border cursor_border_outer", [[0,resolutions[properties['resolution']] ]], 'none', 'black',  1, cursorBorderArc)
+
+
+  d3.selectAll('.cursor_border_side').style('opacity', .5)
+
+
 
 }
 
@@ -376,25 +462,67 @@ function plotMidArc(start, end, track_order, data) {
   var dataRadScale = d3.scaleLinear().range([-0.5 * Math.PI*.85  , 0.5 * Math.PI*.85]).domain([start, end]).clamp(true)
 
   var arc_height = (data['outer'] - data['inner'])/2
-  console.log(data['inner'], data['outer'], arc_height, properties['width']/4);
+
   var inner = data['inner'] - properties['width']*.2
   var outer = inner+2*arc_height
   var arc_border = getArcFunction(inner, outer, arcRadScale)
   var arc_middle = getArcFunction(inner+arc_height*1, inner+arc_height*1, arcRadScale)
-  var arc_plus = getMidArcFunction(inner, inner+arc_height, dataRadScale)
-  var arc_minus = getMidArcFunction(outer-arc_height, outer, dataRadScale)
+  var arc_plus = getMidArcFunction(inner, inner+arc_height*.9, dataRadScale)
+  var arc_minus = getMidArcFunction(outer-arc_height*.9, outer, dataRadScale)
 
-  var strand = '+'
-  var gene_boundaries; var gene_elements;
-  [gene_boundaries, gene_elements] = findGenesWithinInterval(start, end, data, strand)
-  console.log(gene_elements);
-  drawBlocks('mid_arc', "blocks_"+track_order+"_border", [[0,resolutions[properties['resolution']] ]], 'none', colors[track_order],  1, arc_border)
-  drawBlocks('mid_arc', "blocks_"+track_order+"_plus", gene_boundaries, 'none', colors[track_order], 1, arc_plus)
-  drawBlocks('mid_arc', "blocks_"+track_order+"_plus", gene_elements, colors[track_order], 'none', 1, arc_plus)
-  //drawBlocks('mid_arc', "blocks_"+track_order+"_minus", data['interval2blocks'][properties['resolution']]['-'], colors[track_order], 'none', 0, arc_minus)
-  drawBlocks('mid_arc', "blocks_"+track_order+"_innerborder", [[0,resolutions[properties['resolution']] ]], 'whitesmoke', 'lightgrey', .1, arc_middle)
-  //g['mid_arc'].style('opacity', .7)
-  //drawMidArcElements(arc, classname, data, color, stroke_color, stroke_width, arc_func)
+
+  var gene_boundaries_plus; var gene_elements_plus;
+  [gene_boundaries_plus, gene_elements_plus] = findGenesWithinInterval(start, end, data, '+', true)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_plus", gene_boundaries_plus, 'none', colors[track_order], 1, arc_plus)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_plus", gene_elements_plus, colors[track_order], 'none', 1, arc_plus)
+
+  var gene_boundaries_minus; var gene_elements_minus;
+  [gene_boundaries_minus, gene_elements_minus] = findGenesWithinInterval(start, end, data, '-', true)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_minus", gene_boundaries_minus, 'none', colors[track_order], 1, arc_minus)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_minus", gene_elements_minus, colors[track_order], 'none', 1, arc_minus)
+
+  drawBlocks('mid_arc', "midarc_"+track_order+"_border", [[0,resolutions[properties['resolution']] ]], 'none', colors[track_order],  .1, arc_border)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_innerborder", [[0,resolutions[properties['resolution']] ]], 'whitesmoke', 'gray', .3, arc_middle)
+
+  var plus_sign = '> >'
+  for (var i = 0; i < 10; i++) {
+    g['mid_arc'].append("path").attr('id', "arclabelmidpath_plus_"+track_order + '_' + i*10)
+      .datum({startAngle:-.35 * Math.PI+ .075*i* Math.PI, endAngle: 0.5 * Math.PI * 2.5})
+      .style("fill", "none")
+      .attr("d", d3.arc().innerRadius(inner).outerRadius(inner+arc_height*.9) );
+
+    g['mid_arc'].append("text")
+            .attr('dy', getWidth()/240 )
+            .attr('x', 0)
+            .style('font-family', 'Courier')
+            .style('font-size', getWidth()/200 + 'px')
+          .append("textPath")
+            .attr('text-anchor', 'start')
+            .attr("fill", function(d){return ['darkgray', 'white'][i%2]} )
+            .attr("xlink:href", "#arclabelmidpath_plus_"+track_order + '_' + i*10)
+            .html(plus_sign);
+  }
+
+    var minus_sign = '< <'
+    for (var i = 0; i < 10; i++) {
+      g['mid_arc'].append("path").attr('id', "arclabelmidpath_minus_"+track_order + '_' + i*10)
+      	.datum({startAngle:-.40 * Math.PI+ .075*i* Math.PI, endAngle: 0.5 * Math.PI * 2.5})
+      	.style("fill", "none")
+      	.attr("d", d3.arc().innerRadius(outer).outerRadius(outer-arc_height*.9) );
+
+      g['mid_arc'].append("text")
+      				.attr('dy', getWidth()/240 )
+      				.attr('x', 0)
+      				.style('font-family', 'Courier')
+      				.style('font-size', getWidth()/200 + 'px')
+      			.append("textPath")
+      				.attr('text-anchor', 'start')
+      				.attr("fill", function(d){return ['darkgray', 'white'][i%2] })
+      				.attr("xlink:href", "#arclabelmidpath_minus_"+track_order + '_' + i*10)
+      				.html(minus_sign);
+    }
+
+
 }
 
 
@@ -409,7 +537,7 @@ function getMidArcFunction(inner, outer, radScale){
 
 
 
-function findGenesWithinInterval(start, end, data, strand) {
+function findGenesWithinInterval(start, end, data, strand, midarc=false) {
   var interval2r_ids = data['interval2genes'][strand]
   var rainbow2gene = data['rainbow2gene']
   var gene2info = data['gene2info']
@@ -420,7 +548,6 @@ function findGenesWithinInterval(start, end, data, strand) {
     rainbow_ids = rainbow_ids.concat(interval2r_ids[i])
   }
   rainbow_ids = [...new Set(rainbow_ids)].filter(function(d){ return d != null})
-  console.log(rainbow_ids);
 
   var genes = []
   var gene_boundaries = []
@@ -428,21 +555,27 @@ function findGenesWithinInterval(start, end, data, strand) {
   var elements = []
   for (var i = 0; i < rainbow_ids.length; i++) {
     var curr_gene = rainbow2gene[rainbow_ids[i]]
-    console.log('cg', curr_gene);
     var curr_info = gene2info[curr_gene].filter(function(d){return d.r_id == rainbow_ids[i]})[0]
-    console.log(curr_gene, curr_info.r_id);
     gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id})
+
     var subtypes = curr_info['interval']
-    var subtype_length = Object.keys(subtypes).length
-    var subtype_count = 0
-    for (var type in subtypes) {
-      for (var t = 0; t < subtypes[type].length; t++) {
-        var curr = subtypes[type][t]
-        gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[subtype_count, subtype_length]})
-      }
-      subtype_count++
+    var subtypes_list = Object.keys(subtypes)
+    var type = subtypes_list[0]
+    for (var t = 0; t < subtypes[type].length; t++) {
+      var curr = subtypes[type][t]
+      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length]})
     }
-    //gene_elements.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id})
+
+    if (!midarc) {
+      console.log('not_midarc');
+      for (var s = 1; s < subtypes_list.length; s++) {
+        var type = subtypes_list[s]
+        for (var t = 0; t < subtypes[type].length; t++) {
+          var curr = subtypes[type][t]
+          gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length]})
+        }
+      }
+    }
   }
 
   return [gene_boundaries, gene_elements]
@@ -454,6 +587,8 @@ function findGenesWithinInterval(start, end, data, strand) {
 function plotTrack() {
 
 }
+
+
 
 
 function updateEnsemblReleaseList(){
@@ -593,6 +728,7 @@ function updateRainbowWithData(data) {
       properties['set_no_tracks'] = sum
       properties['curr_no_tracks'] = sum
       g['big_arc'].on('mousemove', updateMidArc)
+      g['big_arc'].on('click', toggleBigLock)
       return plotAddTrack(sum)
 
     }).then(function(){
@@ -736,6 +872,8 @@ function changeResolution(){
     plotBigArc(track_order, curr_track_data);
   }
   plotAddTrack()
+  g['big_arc'].on('mousemove', updateMidArc)
+  g['big_arc'].on('click', toggleBigLock)
 
 }
 
