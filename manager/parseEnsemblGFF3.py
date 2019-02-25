@@ -125,7 +125,6 @@ class parseEnsemblGFF3:
                     'subtype':subtype,
                     'strand':strand,
                     'id':self.getID(meta),
-                    'r_id':index,    #rainbow id
                     'name':self.getName(meta),
                     'meta':self.getName(meta),
                     'biotype':self.getBiotype(meta),
