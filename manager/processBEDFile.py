@@ -117,12 +117,40 @@ class processBEDFile:
         return ranges
 
 
-    def getAllData(self, chrom, trees):
+    def getAllData(self, chrom, tree):
 
-        interval2genes = self.getRangesFromTree(chrom, trees[chrom])
-        interval2blocks = self.getBlocksFromTree(chrom, trees[chrom])
+        interval2genes = self.getRangesFromTree(chrom, tree)
+        interval2blocks = self.getBlocksFromTree(chrom, tree)
 
         return interval2genes, interval2blocks
+
+
+    def getGene2Info(self, chrom, data):
+        gene2info = {}
+        rainbow2gene = {}
+        rainbow_tree = {}
+
+        ranges = {'+':[], '-':[]}
+        r_id = 0
+        for strand in data:
+            tree_tuple = []
+            for datum in data[strand]:
+                r_id += 1
+                start, end, (element, *values) = datum
+                tree_tuple.append([start, end, r_id])
+                rainbow2gene[r_id] = element
+                curr = {
+                        'r_id':r_id,
+                        'annot':{'chrom':chrom,'strand':strand,'start': start,'end': end,'values' : values },
+                        'interval':{ '-':[ [start, end] ] }
+                        }
+                try:
+                    gene2info[element].append(curr)
+                except:
+                    gene2info[element] = [curr]
+            rainbow_tree[strand] = IntervalTree.from_tuples(tree_tuple)
+
+        return gene2info, rainbow2gene, rainbow_tree
 
 
     def buildData(self):
@@ -161,8 +189,9 @@ class processBEDFile:
         trees = self.getTrees(data)
         for chrom in trees:
             print(chrom)
-            interval2genes, interval2blocks = self.getAllData(chrom, trees)
-            pk = self.saveChromosomeData(self.file, chrom, self.chrom2len[chrom], interval2genes, interval2blocks)
+            gene2info, rainbow2gene, rainbow_tree = self.getGene2Info(chrom, data[chrom])
+            interval2genes, interval2blocks = self.getAllData(chrom, rainbow_tree)
+            pk = self.saveChromosomeData(self.file, chrom, self.chrom2len[chrom], interval2genes, interval2blocks, gene2info, rainbow2gene)
             pks.append(pk)
             Task.objects.filter(request = given_task, created_by = self.username).update(status='completed')
         if len(pks)>0:
@@ -183,15 +212,21 @@ class processBEDFile:
 
 
 
-    def saveChromosomeData(self, file, chromosome, chromosome_length, interval2genes, interval2blocks):
+    def saveChromosomeData(self, file, chromosome, chromosome_length, interval2genes, interval2blocks, gene2info, rainbow2gene):
         saved = DataModel.objects.create(
                     file = file,
                     chromosome = chromosome,
                     chromosome_length = chromosome_length,
                     interval2genes = json.dumps(interval2genes),
                     interval2blocks = json.dumps(interval2blocks),
+                    gene2info = json.dumps(gene2info),
+                    rainbow2gene = json.dumps(rainbow2gene)
+
         )
         return saved.pk
+
+
+
 
 
 

@@ -327,7 +327,7 @@ function processArcData(track_order, data){
   temp['outer'] = rScale(track_order+.8)
 
   var diff = properties['width']/2.1 - properties['width']/4
-  var yScale = d3.scaleLinear().range([10, diff+10]).domain([0,properties['maximum_no_tracks']])
+  var yScale = d3.scaleLinear().range([15, diff+15]).domain([0,properties['maximum_no_tracks']])
   temp['up'] = yScale(track_order)
   temp['down'] = yScale(track_order+.8)
   temp['track_height'] = temp['down'] - temp['up']
@@ -379,6 +379,8 @@ function plotAll() {
 
 
 function initializeSVG(){
+  properties['big_locked'] = false
+  properties['mid_locked'] = false
   properties['width'] = getWidth()
   properties['height'] = properties['width'] / properties['width_height_ratio']
   d3.select('#rainbow').select('svg').remove()
@@ -512,13 +514,12 @@ function plotBigArc(track_order, data) {
 
   //preparing arrows showing strand direction in mid arc
   var arc_height = (data['outer'] - data['inner'])/2
-
   var inner = data['inner'] - properties['width']*.2
   var outer = inner+2*arc_height
   var plus_sign = '> >'
-  for (var i = 0; i < 10; i++) {
-    g['mid_arc_strands'].append("path").attr('id', "arclabelmidpath_plus_"+track_order + '_' + i*10)
-      .datum({startAngle:-.35 * Math.PI+ .075*i* Math.PI, endAngle: 0.5 * Math.PI * 2.5})
+  for (var i = 0; i < 3; i++) {
+    g['mid_arc_strands'].append("path").attr('id', "arclabelmidpath_plus_"+track_order + '_' + i*5)
+      .datum({startAngle:-.35 * Math.PI+ .35*i* Math.PI, endAngle: 0.5 * Math.PI * 2.5})
       .style("fill", "none")
       .attr("d", d3.arc().innerRadius(inner).outerRadius(inner+arc_height*.9) );
     g['mid_arc_strands'].append("text")
@@ -528,15 +529,15 @@ function plotBigArc(track_order, data) {
             .style('font-size', getWidth()/200 + 'px')
           .append("textPath")
             .attr('text-anchor', 'start')
-            .attr("fill", function(d){return ['white', 'white'][i%2]} )
-            .attr("xlink:href", "#arclabelmidpath_plus_"+track_order + '_' + i*10)
+            .attr("fill", function(d){return ['darkgray', 'white'][i%2]} )
+            .attr("xlink:href", "#arclabelmidpath_plus_"+track_order + '_' + i*5)
             .style('opacity', .5)
             .html(plus_sign);
   }
     var minus_sign = '< <'
-    for (var i = 0; i < 10; i++) {
-      g['mid_arc_strands'].append("path").attr('id', "arclabelmidpath_minus_"+track_order + '_' + i*10)
-      	.datum({startAngle:-.40 * Math.PI+ .075*i* Math.PI, endAngle: 0.5 * Math.PI * 2.5})
+    for (var i = 0; i < 3; i++) {
+      g['mid_arc_strands'].append("path").attr('id', "arclabelmidpath_minus_"+track_order + '_' + i*5)
+      	.datum({startAngle:-.40 * Math.PI+ .35*i* Math.PI, endAngle: 0.5 * Math.PI * 2.5})
       	.style("fill", "none")
       	.attr("d", d3.arc().innerRadius(outer).outerRadius(outer-arc_height*.9) );
       g['mid_arc_strands'].append("text")
@@ -547,7 +548,7 @@ function plotBigArc(track_order, data) {
       			.append("textPath")
       				.attr('text-anchor', 'start')
       				.attr("fill", function(d){return ['darkgray', 'white'][i%2] })
-      				.attr("xlink:href", "#arclabelmidpath_minus_"+track_order + '_' + i*10)
+      				.attr("xlink:href", "#arclabelmidpath_minus_"+track_order + '_' + i*5)
               .style('opacity', .5)
       				.html(minus_sign);
     }
@@ -707,12 +708,12 @@ function plotMidArc(start, end, track_order, data) {
 
   var gene_boundaries_plus; var gene_elements_plus;
   [gene_boundaries_plus, gene_elements_plus] = findGenesWithinInterval(start, end, data, '+', true)
-  drawBlocks('mid_arc', "midarc_"+track_order+"_plus", gene_boundaries_plus, 'none', colors[track_order], 1, arc_plus)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_plus", gene_boundaries_plus, 'white', colors[track_order], 1, arc_plus)
   drawBlocks('mid_arc', "midarc_"+track_order+"_plus", gene_elements_plus, colors[track_order], 'none', 1, arc_plus)
 
   var gene_boundaries_minus; var gene_elements_minus;
   [gene_boundaries_minus, gene_elements_minus] = findGenesWithinInterval(start, end, data, '-', true)
-  drawBlocks('mid_arc', "midarc_"+track_order+"_minus", gene_boundaries_minus, 'none', colors[track_order], 1, arc_minus)
+  drawBlocks('mid_arc', "midarc_"+track_order+"_minus", gene_boundaries_minus, 'white', colors[track_order], 1, arc_minus)
   drawBlocks('mid_arc', "midarc_"+track_order+"_minus", gene_elements_minus, colors[track_order], 'none', 1, arc_minus)
 
   drawBlocks('mid_arc', "midarc_"+track_order+"_innerborder", [[0,resolutions[properties['resolution']] ]], 'whitesmoke', 'gray', .3, arc_middle)
@@ -730,20 +731,39 @@ function plotTrack(start, end, track_order, data ) {
   var track_height = data['track_height']
   var plusYScale = d3.scaleLinear().range([data['up'], data['up']+track_height*45]).domain([data['up'], data['down']]).clamp(true)
 
-  drawTrack('tracks', "track_"+track_order+"_border", [{'start':start, 'end':end, 'up':data['up'], 'down':data['down']}], 'white', colors[track_order], 1, xScale, data['up'], track_height)
+  drawTrack('tracks', "track_"+track_order+"_border", [{'start':start, 'end':end, 'up':data['up'], 'down':data['down']}], 'white', colors[track_order], .4, xScale, data['up'], track_height)
 
   var gene_boundaries_plus; var gene_elements_plus;
   [gene_boundaries_plus, gene_elements_plus] = findGenesWithinInterval(start, end, data, '+', false)
-  drawTrack('tracks', "track_"+track_order+"_plus", gene_boundaries_plus, 'none', colors[track_order], 1, xScale, data['up'], track_height/2*.9)
-  drawTrack('tracks', "track_"+track_order+"_plus_elements", gene_elements_plus, colors[track_order], 'none', 1, xScale, data['up'], track_height/2*.9)
+  drawTrack('tracks', "track_"+track_order+"_plus", gene_boundaries_plus, 'whitesmoke', colors[track_order], 1, xScale, data['up'], track_height/2*.85)
+  drawTrack('tracks', "track_"+track_order+"_plus_elements", gene_elements_plus, colors[track_order], 'black', .3, xScale, data['up'], track_height/2*.85)
 
   var gene_boundaries_minus; var gene_elements_minus;
   [gene_boundaries_minus, gene_elements_minus] = findGenesWithinInterval(start, end, data, '-', false)
-  drawTrack('tracks', "track_"+track_order+"_minus", gene_boundaries_minus, 'none', colors[track_order], 1, xScale, data['down']-track_height/2*.9, track_height/2*.9)
-  drawTrack('tracks', "track_"+track_order+"_minus_elements", gene_elements_minus, colors[track_order], 'none', 1, xScale, data['down']-track_height/2*.9, track_height/2*.9)
+  drawTrack('tracks', "track_"+track_order+"_minus", gene_boundaries_minus, 'whitesmoke', colors[track_order], 1, xScale, data['down']-track_height/2*.85, track_height/2*.85)
+  drawTrack('tracks', "track_"+track_order+"_minus_elements", gene_elements_minus, colors[track_order], 'black', .3, xScale, data['down']-track_height/2*.85, track_height/2*.85)
 
+  d3.selectAll(".track_"+track_order+"_plus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName)
+  d3.selectAll(".track_"+track_order+"_plus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName)
+  d3.selectAll(".track_"+track_order+"_minus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName)
+  d3.selectAll(".track_"+track_order+"_minus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName)
 }
 
+
+function showElementName(d) {
+  d3.selectAll('#curr_name').remove()
+  g['tracks'].append('text').attr('id', 'curr_name',)
+                .attr('x', properties['width']/2)
+                .attr('y', 10)
+                .style('font-size', '.9em')
+                .style('text-anchor', 'middle')
+                .text(d.name)
+}
+
+
+function removeElementName() {
+  d3.selectAll('#curr_name').remove()
+}
 
 
 function plotMidCursor(pos_in_rad) {
@@ -780,12 +800,38 @@ function plotMidCursor(pos_in_rad) {
     d3.selectAll('.mid_cursor_invisible_border').style('opacity', 0)
 
     g['tracks'].selectAll("rect").remove()
+    var track_pos_start = properties['mid_genome_pos']-properties['mid_zoom']
+    var track_pos_end = properties['mid_genome_pos']+properties['mid_zoom']
+    updateGenomePositionInfo(track_pos_start, track_pos_end, false)
     for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
-      plotTrack(properties['mid_genome_pos']-properties['mid_zoom'], properties['mid_genome_pos']+properties['mid_zoom'], track_order, properties['tracks'][track_order])
+      plotTrack(track_pos_start, track_pos_end, track_order, properties['tracks'][track_order])
     }
 
   }
 
+}
+
+
+function updateGenomePositionInfo(track_pos_start, track_pos_end, initialize) {
+
+  if (initialize) {
+    g['tracks'].append('text')
+                  .attr('id', 'track_pos_start')
+                  .attr('x', properties['width']/2 - properties['width']/2.1)
+                  .attr('y', 12)
+                  .style('text-anchor', 'start')
+                  .style('font-size', '.5em')
+
+    g['tracks'].append('text')
+                  .attr('id', 'track_pos_end')
+                  .attr('x', properties['width']/2 + properties['width']/2.1)
+                  .attr('y', 12)
+                  .style('text-anchor', 'end')
+                  .style('font-size', '.5em')
+
+  }
+  d3.select('#track_pos_start').text(parseInt(track_pos_start).toLocaleString('en-US'))
+  d3.select('#track_pos_end').text(parseInt(track_pos_end).toLocaleString('en-US'))
 }
 
 
@@ -820,14 +866,14 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
   for (var i = 0; i < rainbow_ids.length; i++) {
     var curr_gene = rainbow2gene[rainbow_ids[i]]
     var curr_info = gene2info[curr_gene].filter(function(d){return d.r_id == rainbow_ids[i]})[0]
-    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id})
+    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id, 'name':curr_gene})
 
     var subtypes = curr_info['interval']
     var subtypes_list = Object.keys(subtypes)
     var type = subtypes_list[0]
     for (var t = 0; t < subtypes[type].length; t++) {
       var curr = subtypes[type][t]
-      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length]})
+      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_gene})
     }
 
     if (!midarc) {
@@ -1001,7 +1047,11 @@ function updateRainbowWithData(data) {
       plotBigCursor(0)
 
       midCursorArc =  d3.arc().innerRadius(properties['tracks'][0]['inner'] - properties['width']*.2 + arc_height).outerRadius(properties['tracks'][properties['tracks'].length-1]['outer'] - properties['width']*.2 - arc_height/3)
+      updateGenomePositionInfo(0,0, true)
       plotMidCursor(properties['mid_corsor_pos_in_rad'])
+      //var track_pos_start = properties['mid_genome_pos']-properties['mid_zoom']
+      //var track_pos_end = properties['mid_genome_pos']+properties['mid_zoom']
+
 
       var temp = properties['big_locked']
       properties['big_locked'] = false
@@ -1039,7 +1089,6 @@ function updateChromosomeList(selected_chrom){
 
 
 
-//incomplete!
 function changeChromosome() {
   properties['big_locked'] = false
   properties['mid_locked'] = false
