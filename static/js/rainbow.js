@@ -118,6 +118,10 @@ function initializeModalListeners(){
     updateSelectGenomeRelease()
   })
 
+  $("#searchKeywordModal").on('shown.bs.modal', function(){
+      $(this).find('#search_from_modal').focus();
+  });
+
   //move active arc cursor and change zoom level
   $(document).keydown(function(e) {
     //only works when active one is locked, and locks others as well
@@ -277,7 +281,73 @@ function initializeRainbow(){
 }
 
 
-function searchGivenKeyword(keyword, keys = null) {
+function prepSearchModal() {
+
+  ratio = parseInt(100/(search['fields'].length+1))
+  d3.select('#search_fields').selectAll('div').remove()
+  var checkbox = d3.select('#search_fields').selectAll('div').data(search['fields']).enter()
+    .append('div').attr("class", "form-check form-check-inline").style('width', ratio+'%').style('margin', 'auto')
+
+  checkbox.append('input').on('change', searchFromModal)
+    .attr("class", "form-check-input checkbox")
+    .attr("type", "checkbox")
+    .attr("id", function(d,i){return 'checkbox_'+d})
+    .attr("checked", true)
+    //.attr("value", "option1")
+
+  checkbox.append('label')
+    .attr("class", "form-check-label")
+    .attr('for', function(d,i){return 'checkbox_'+d})
+    .html(function(d){return d})
+
+  $('#searchKeywordModal').modal('show')
+  document.getElementById('search_from_modal').value = document.getElementById('search_from_SVG').value
+  document.getElementById('search_from_SVG').value = ''
+
+}
+
+
+function searchFromSVG(){
+  var keyword = $.trim(document.getElementById('search_from_SVG').value)
+  console.log(keyword);
+  if(keyword.length > 0){
+    prepSearchModal()
+  }
+}
+
+
+
+function searchFromModal() {
+  var keyword = $.trim(document.getElementById('search_from_modal').value)
+  if (keyword.length >= 3) {
+    var fields = search['fields'].filter(function(d){ return document.getElementById('checkbox_'+d).checked})
+    var found = searchGivenKeyword(keyword, fields)
+
+    if (found.length>100) {
+
+      found = [[found.length + ' elements found, displaying first 100', '', [{'name':'', 'biotype':''}]]].concat(found)
+      found = found.slice(0, 101)
+    }else {
+      found = [[found.length + ' elements found', '', [{'name':'', 'biotype':''}]]].concat(found)
+    }
+
+
+
+    d3.select('#select_searchResults').selectAll('option').remove()
+    d3.select('#select_searchResults').selectAll('option').data(found).enter()
+      .append('option')
+        .property('value', function(d,i){return d[0]+';'+d[1]})
+        .property('text', function(d,i){
+          //only display number of found elements in the first option
+          if(i) { return d[0] + ', '+d[2][0].name + ', '+d[2][0].biotype }else { return d[0] }
+        })
+        .property('disabled', function(d,i){return !i})
+  }
+}
+
+
+function searchGivenKeyword(keyword, fields, keys = null) {
+  console.log(fields);
   var filter = false
   if (keys) {
       filter = true
@@ -292,22 +362,24 @@ function searchGivenKeyword(keyword, keys = null) {
     console.log(track_order, Object.keys(curr).length);
     for (var gene in curr) {
       //console.log(gene);
-      if (searchInGene(keyword, gene, curr[gene], 'exact')) {
-        found.push([gene, track_order])
+      if (searchInGene(keyword, gene, curr[gene], fields, 'exact')) {
+        found.push([gene, track_order, curr[gene]])
       }
     }
   }
   return found
 }
 
-function searchInGene(keyword, gene, data, type){
+
+
+function searchInGene(keyword, gene, data, fields, type){
   //type is either exact match, case-insensitive exact match, or contains
   if (gene.indexOf(keyword) > -1) {
     return true
   }
   for (var d = 0; d < data.length; d++) {
-    for (var f = 0; f < search['fields'].length; f++) {
-      if (data[d][search['fields'][f]].indexOf(keyword) > -1 ) {
+    for (var f = 0; f < fields.length; f++) {
+      if (data[d][fields[f]].indexOf(keyword) > -1 ) {
         return true
       }
     }
@@ -470,9 +542,7 @@ function initializeSVG(){
                 .attr('y', search_y)
                 .attr('width', search_width)
                 .attr('height', 30)
-    .append('xhtml:div').html('<input type="text" id="search" class="form-control form-control-sm" onkeyup="search()" placeholder="search" data-bv-notempty style="font-size:.7em">')
-
-
+    .append('xhtml:div').html('<input type="text" id="search_from_SVG" class="form-control form-control-sm" oninput="searchFromSVG()" placeholder="search" data-bv-notempty style="font-size:.7em">')
 
 }
 

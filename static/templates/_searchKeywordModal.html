@@ -1,0 +1,44 @@
+<div class="modal fade" id="searchKeywordModal" tabindex="-1" role="dialog" aria-labelledby="searchKeywordModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Search within tracks</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="row">
+          <div class="col-md-12">
+            <label>Fields to be searched:</label>
+            <div id="search_fields">
+            </div>
+            <input type="text" id="search_from_modal" class="form-control" oninput="searchFromModal()" placeholder="enter a keyword" autofocus>
+            <select class="form-control" name="select_searchResults" id="select_searchResults">
+              <option value="" disabled>Nothing found</option>
+            </select>
+          </div>
+        </div>
+        <br>
+        <div class="row">
+          <div class="col-md-7">
+            <button class="btn form-control btn-success" id="focus_selected" onclick="focusSelected()">Focus Selected</button>
+          </div>
+          <div class="col-md-5">
+            <button class="btn form-control btn-primary" id="create_track" onclick="createTrackFromAll()">Create Track from All Results</button>
+          </div>
+        </div>
+
+
+
+
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+
+      </div>
+    </div>
+  </div>
+</div>
