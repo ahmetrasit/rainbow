@@ -16,18 +16,18 @@
 
 		<div id="rainbow" style="position: absolute;left:0;right:0;margin:auto;" >
 			<div style="position:absolute; left:20px; top:0; z-index:999" class="row">
-				<div class="form-check">
+				<div class="form-check form-control-sm col-sm-2">
 				  <input class="form-check-input" type="checkbox" value="" id="editCheckbox" onchange="toggleEditMode()">
-				  <label class="form-check-label" for="editCheckbox">
+				  <label class="form-check-label " for="editCheckbox">
 				    Edit
 				  </label>
 				</div>
-				<div class="input-group">
-						<select class="custom-select" id="chrom_list" style="font-size:.9em" onchange="changeChromosome()">
+				<div class="input-group col-sm-4 ">
+						<select class="custom-select form-control-sm" id="chrom_list" style="font-size:.9em" onchange="changeChromosome()">
 						</select>
 				</div>
-				<div class="input-group">
-						<select class="custom-select" id="selectResolution" style="font-size:.9em" onchange="changeResolution()">
+				<div class="input-group col-sm-6">
+						<select class="custom-select form-control-sm" id="selectResolution" style="font-size:.9em" onchange="changeResolution()">
 							<option value="low">low</option>
 							<option value="mid" selected>mid</option>
 							<option value="high">high</option>

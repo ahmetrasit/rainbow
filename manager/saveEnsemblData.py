@@ -108,10 +108,12 @@ class saveEnsemblData:
         pks = []
         failed_files = []
         chromosome_list = []
+        global_gene2info = {}
         for index, full_path in enumerate(full_path_list):
             file = file_list[index]
             #try:
             c, gene2info, interval2genes, interval2blocks, rainbow2gene = parse_conn.getAllData(full_path, biotype)
+            global_gene2info = self.add2GlobalGene2Info(c['chrom'], gene2info, global_gene2info)
             print(">s", c['chrom'])
             chromosome_list.append(c['chrom'])
             pk = self.saveChromosomeData(file, c['source'], c['chrom'], c['length'], gene2info, interval2genes, interval2blocks, rainbow2gene)
@@ -126,7 +128,7 @@ class saveEnsemblData:
                 views.notifyUser(self.username, "{} from {} has no defined chromosomes, sorry, it'll not be available for visualization.".format(file, self.genome))
             '''
         if len(pks)>0:
-            bundle_pk = self.saveDataModelBundle(c['source'], pks, chromosome_list, biotype)
+            bundle_pk = self.saveDataModelBundle(c['source'], pks, chromosome_list, biotype, global_gene2info)
             for pk in pks:
                 DataModel.objects.filter(pk=pk).update(data_model_bundle=bundle_pk)
             success = True
@@ -140,6 +142,31 @@ class saveEnsemblData:
 
         return success, bundle_pk, failed_files, chromosome_list, c['source']
 
+
+
+    def add2GlobalGene2Info(self, chrom, local_gene2info, global_gene2info):
+        for gene in local_gene2info:
+            for curr in local_gene2info[gene]:
+                r_id = curr['r_id']
+                annot = curr['annot']
+                info = {
+                        'r_id' : r_id,
+                        'chrom' : chrom,
+                        'strand' : annot['strand'],
+                        'start' : annot['start'],
+                        'end' : annot['end'],
+                        'id' : annot['id'],
+                        'name' : annot['name'],
+                        'meta' : annot['meta'],
+                        'biotype' : annot['biotype'],
+                        'description' : annot['description'],
+                        'no_of_isoforms' : len(curr['interval'].keys())
+                }
+                try:
+                    global_gene2info[gene].append(info)
+                except:
+                    global_gene2info[gene] = [info]
+        return global_gene2info
 
 
 
@@ -157,13 +184,14 @@ class saveEnsemblData:
 
 
 
-    def saveDataModelBundle(self, source, data_models, chromosome_list, biotype):
+    def saveDataModelBundle(self, source, data_models, chromosome_list, biotype, global_gene2info):
         saved = DataModelBundle.objects.create(
                     short_name = '{}-{}-{}'.format(biotype, self.release, self.getGenomeShortName(self.genome)) ,
                     description = '{} genes of {}, {} from {}'.format(biotype, self.getGenomeShortName(self.genome), self.release, source) ,
                     data_models = json.dumps(data_models),
                     chromosome_list = json.dumps(chromosome_list),
                     biotype = biotype,
+                    global_gene2info = json.dumps(global_gene2info),
                     source = source,
                     type = 'gene',
                     version = self.release,

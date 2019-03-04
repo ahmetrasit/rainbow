@@ -18,8 +18,10 @@ urlpatterns = [
     url(r'^config/main$', manager_views.editMainConfiguration, name='editMainConfiguration'),
     url(r'^add/user$', manager_views.addUser, name='addUser'),
     url(r'^get/latestView/$', manager_views.getLatestView, name='getLatestView'),
+    url(r'^get/bundle/([\w:]+)/$', manager_views.getBundleData, name='getBundleData'),
     url(r'^get/arc/([\w:;]+)/$', manager_views.getArcData, name='getArcData'),
     url(r'^get/track/(\d+)/$', manager_views.getTrackData, name='getTrackData'),
+
     url(r'^get/release/$', manager_views.getEnsemblReleaseList, name='getEnsemblReleaseList'),
     url(r'^get/genome/([\w_-]+)$', manager_views.getEnsemblGenomeList, name='getEnsemblGenomeList'),
     url(r'^build/ensembl/([\w_-]+)/([\w_-]+)$', manager_views.buildEnsemblGenome, name='buildEnsemblGenome'),

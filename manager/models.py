@@ -40,6 +40,7 @@ class DataModelBundle(models.Model):
     data_models = models.TextField()
     chromosome_list = models.TextField()
     biotype = models.TextField()
+    global_gene2info = models.TextField(default=None, blank=True, null=True)  #gene2info for all chromosomes in the same bundle
     source = models.TextField() #user or ensembl?
     type = models.CharField(max_length=32) #gene or data
     version = models.TextField(default=None, blank=True, null=True)

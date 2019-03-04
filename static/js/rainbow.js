@@ -1,3 +1,6 @@
+//ask user for background
+
+
 //disable scrolling using arrow keys
 window.addEventListener("keydown", function(e) {
     // space and arrow keys
@@ -64,6 +67,11 @@ var properties = {
   radScale : null,
   big_locked : false,
   mid_locked : false,
+
+}
+
+var search = {
+  fields : ['id', 'name', 'meta', 'biotype']
 }
 
 
@@ -269,10 +277,42 @@ function initializeRainbow(){
 }
 
 
-function updateTrackData() {
-  for (var i = 0; i < properties['tracks'].length; i++) {
-    getArcData(i, properties['tracks'][i])
+function searchGivenKeyword(keyword, keys = null) {
+  var filter = false
+  if (keys) {
+      filter = true
   }
+  console.log(filter);
+  found = []
+  for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
+    curr = properties['tracks'][track_order]['global_gene2info']
+    if (filter) {
+        curr = curr.filter(function(d){return keys.indexOf(d)>-1})
+    }
+    console.log(track_order, Object.keys(curr).length);
+    for (var gene in curr) {
+      //console.log(gene);
+      if (searchInGene(keyword, gene, curr[gene], 'exact')) {
+        found.push([gene, track_order])
+      }
+    }
+  }
+  return found
+}
+
+function searchInGene(keyword, gene, data, type){
+  //type is either exact match, case-insensitive exact match, or contains
+  if (gene.indexOf(keyword) > -1) {
+    return true
+  }
+  for (var d = 0; d < data.length; d++) {
+    for (var f = 0; f < search['fields'].length; f++) {
+      if (data[d][search['fields'][f]].indexOf(keyword) > -1 ) {
+        return true
+      }
+    }
+  }
+  return false
 }
 
 
@@ -285,12 +325,31 @@ function getArcData(pk, index){
     return d3.json('http://localhost:8000/get/arc/'+pk).then(function(data){
       return processArcData(track_order, data);
     }).then(function (data){
-      properties['tracks'][track_order] = data;
+      properties['tracks'][track_order] = Object.assign({}, properties['tracks'][track_order], data)
       plotBigArc(track_order, data);
       return 1
     }).catch(console.log.bind(console))
   }
+}
 
+function getBundleData(pk, index){
+  var url = 'http://localhost:8000/get/bundle/'+pk
+  if (url in cache['url2data']) {
+    return cache['url2data'][url]
+  }else {
+    var track_order = index;
+    return d3.json('http://localhost:8000/get/bundle/'+pk).then(function(data){
+      var temp = {}
+      //console.log(data['global_gene2info']);
+      temp['global_gene2info'] = JSON.parse(data['global_gene2info'])
+      return temp
+    }).then(function (data){
+      properties['tracks'][track_order] = Object.assign({}, properties['tracks'][track_order], data)
+      //properties['tracks'][track_order]['global_gene2info'] = data['global_gene2info'];
+      plotBigArc(track_order, data);
+      return 1
+    }).catch(console.log.bind(console))
+  }
 }
 
 
@@ -389,6 +448,8 @@ function initializeSVG(){
     .attr('width', properties['width'])
     .style('background-color', '#ccffcc') //ask user for background
 
+
+
   g['big_arc'] = svg.append("g")
     	.attr("transform", "translate(" + properties['width'] / 2 + "," + properties['width'] / 2 +")")
   g['mid_arc'] = svg.append("g")
@@ -398,6 +459,20 @@ function initializeSVG(){
   //for mid arc strand arrows
   g['mid_arc_strands'] = svg.append("g")
     	.attr("transform", "translate(" + properties['width'] / 2 + "," + properties['width'] / 2 +")")
+
+  //add search input box
+  var search_width = parseInt(getWidth()/6)
+  var search_x = parseInt(search_width*2.5)
+  var search_y = -parseInt(search_width/4)
+  console.log(search_x, search_width, search_y);
+  g['tracks'].append('foreignObject')
+                .attr('x', search_x)
+                .attr('y', search_y)
+                .attr('width', search_width)
+                .attr('height', 30)
+    .append('xhtml:div').html('<input type="text" id="search" class="form-control form-control-sm" onkeyup="search()" placeholder="search" data-bv-notempty style="font-size:.7em">')
+
+
 
 }
 
@@ -743,10 +818,10 @@ function plotTrack(start, end, track_order, data ) {
   drawTrack('tracks', "track_"+track_order+"_minus", gene_boundaries_minus, 'whitesmoke', colors[track_order], 1, xScale, data['down']-track_height/2*.85, track_height/2*.85)
   drawTrack('tracks', "track_"+track_order+"_minus_elements", gene_elements_minus, colors[track_order], 'black', .3, xScale, data['down']-track_height/2*.85, track_height/2*.85)
 
-  d3.selectAll(".track_"+track_order+"_plus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName)
-  d3.selectAll(".track_"+track_order+"_plus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName)
-  d3.selectAll(".track_"+track_order+"_minus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName)
-  d3.selectAll(".track_"+track_order+"_minus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName)
+  d3.selectAll(".track_"+track_order+"_plus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
+  d3.selectAll(".track_"+track_order+"_plus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
+  d3.selectAll(".track_"+track_order+"_minus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
+  d3.selectAll(".track_"+track_order+"_minus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
 }
 
 
@@ -754,7 +829,7 @@ function showElementName(d) {
   d3.selectAll('#curr_name').remove()
   g['tracks'].append('text').attr('id', 'curr_name',)
                 .attr('x', properties['width']/2)
-                .attr('y', 10)
+                .attr('y', 11)
                 .style('font-size', '.9em')
                 .style('text-anchor', 'middle')
                 .text(d.name)
@@ -762,7 +837,17 @@ function showElementName(d) {
 
 
 function removeElementName() {
-  d3.selectAll('#curr_name').remove()
+  if (properties['keepElementName']) {
+    properties['keepElementName'] = false
+  }else {
+    d3.selectAll('#curr_name').remove()
+  }
+
+}
+
+
+function keepElementName() {
+  properties['keepElementName'] = true
 }
 
 
@@ -1023,6 +1108,8 @@ function updateRainbowWithData(data) {
     properties['tracks'] = tracks
     return Promise.all(tracks.map(function(pk, index){
       latest_tracks = tracks
+      var bundle_pk = pk.split(';')[0]
+      getBundleData(bundle_pk, index)
       return getArcData(pk, index)
     }))
   }).then(function(results){

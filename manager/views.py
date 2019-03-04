@@ -215,6 +215,13 @@ def getArcData(request, bundle_chrom):
 
 
 @login_required
+def getBundleData(request, bundle):
+    info = DataModelBundle.objects.filter(pk=int(bundle)).values('global_gene2info')
+    return JsonResponse({**list(info)[0]}, safe=False)
+
+
+
+@login_required
 def getTrackData(request, track_pk):
     curr = DataModel.objects.filter(pk=track_pk).values('gene2info', 'interval2genes', 'rainbow2gene', 'chromosome_length')
     #print(list(curr)[0])
