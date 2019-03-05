@@ -302,7 +302,6 @@ function prepSearchModal() {
 
   $('#searchKeywordModal').modal('show')
   document.getElementById('search_from_modal').value = document.getElementById('search_from_SVG').value
-  document.getElementById('search_from_SVG').value = ''
 
 }
 
@@ -322,48 +321,90 @@ function searchFromModal() {
   if (keyword.length >= 3) {
     var fields = search['fields'].filter(function(d){ return document.getElementById('checkbox_'+d).checked})
     var found = searchGivenKeyword(keyword, fields)
-
     if (found.length>100) {
-
       found = [[found.length + ' elements found, displaying first 100', '', [{'name':'', 'biotype':''}]]].concat(found)
       found = found.slice(0, 101)
     }else {
-      found = [[found.length + ' elements found', '', [{'name':'', 'biotype':''}]]].concat(found)
+      var msg = ' elements found'
+      if (found.length == 1) {
+        msg = ' element found'
+      }
+      found = [[found.length + msg, '', {'name':'', 'biotype':'', 'r_id':''}]].concat(found)
     }
-
-
+    search['found_count'] = found.length - 1
 
     d3.select('#select_searchResults').selectAll('option').remove()
     d3.select('#select_searchResults').selectAll('option').data(found).enter()
       .append('option')
-        .property('value', function(d,i){return d[0]+';'+d[1]})
+        .property('value', function(d,i){return d[0]+';'+d[1]+';'+d[2].r_id})
         .property('text', function(d,i){
           //only display number of found elements in the first option
-          if(i) { return d[0] + ', '+d[2][0].name + ', '+d[2][0].biotype }else { return d[0] }
+          if(i) { return d[0] + ', '+d[2].name + ', '+d[2].biotype }else { return d[0] }
         })
         .property('disabled', function(d,i){return !i})
+  }
+  else {
+    search['found_count'] = 0
+    d3.select('#select_searchResults').selectAll('option').remove()
   }
 }
 
 
-function searchGivenKeyword(keyword, fields, keys = null) {
-  console.log(fields);
+function focusSelected() {
+  var selected = document.getElementById('select_searchResults')
+  if (search['found_count'] > 0) {
+    var curr = null
+    if (search['found_count']==1) {
+      var [gene, track_order, r_id] = selected.options[1].value.split(";")
+      curr = properties['tracks'][track_order]['global_gene2info'][gene].filter(function(d){return d.r_id == r_id})[0]
+
+    }else {
+      if (selected.selectedIndex > 0) {
+        var [gene, track_order, r_id] = selected.options[selected.selectedIndex].value.split(";")
+        curr = properties['tracks'][track_order]['global_gene2info'][gene].filter(function(d){return d.r_id == r_id})[0]
+      }
+    }
+    //if a valid option is selected:
+    if (curr) {
+      document.getElementById('search_from_SVG').value = ''
+      $('#searchKeywordModal').modal('hide')
+      search['genome_pos'] = (curr.start + curr.end)/2
+      if (properties['chrom'] != curr.chrom) {
+        document.getElementById('chrom_list').value = curr.chrom
+        search['change_chromosome'] = true
+        changeChromosome()
+        properties['mid_corsor_pos_in_rad'] = 0
+      }else {
+        properties['big_corsor_pos_in_rad'] = properties['radScale'].invert(search['genome_pos'])
+        updateMidArcWithRad(properties['big_corsor_pos_in_rad'])
+      }
+
+      plotMidCursor(properties['mid_corsor_pos_in_rad'])
+      properties['mid_locked'] = false
+      toggleMidLock()
+      properties['big_locked'] = false
+      toggleBigLock()
+    }
+  }
+}
+
+
+function searchGivenKeyword(keyword, fields, keys = null, type='exact') {
   var filter = false
   if (keys) {
       filter = true
   }
-  console.log(filter);
   found = []
   for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
     curr = properties['tracks'][track_order]['global_gene2info']
     if (filter) {
         curr = curr.filter(function(d){return keys.indexOf(d)>-1})
     }
-    console.log(track_order, Object.keys(curr).length);
     for (var gene in curr) {
       //console.log(gene);
-      if (searchInGene(keyword, gene, curr[gene], fields, 'exact')) {
-        found.push([gene, track_order, curr[gene]])
+      if(searchInGene(keyword, gene, curr[gene], fields, type)){
+        var output = searchInsideGivenGene(track_order, keyword, gene, curr[gene], fields, type)
+        found = found.concat(output)
       }
     }
   }
@@ -372,6 +413,32 @@ function searchGivenKeyword(keyword, fields, keys = null) {
 
 
 
+function searchInsideGivenGene(track_order, keyword, gene, data, fields, type) {
+  var output = []
+  if (gene.indexOf(keyword) > -1) {
+    for (var d = 0; d < data.length; d++){
+      var curr = data[d]
+      output.push([gene, track_order, curr])
+    }
+  }else {
+    for (var d = 0; d < data.length; d++) {
+      var add = false
+      var curr = data[d]
+      for (var f = 0; f < fields.length; f++) {
+        if (curr[fields[f]].indexOf(keyword) > -1 ) {
+          add = true
+        }
+      }
+      if (add) {
+        output.push([gene, track_order, curr])
+      }
+    }
+  }
+  return output
+}
+
+
+//search faster
 function searchInGene(keyword, gene, data, fields, type){
   //type is either exact match, case-insensitive exact match, or contains
   if (gene.indexOf(keyword) > -1) {
@@ -418,7 +485,6 @@ function getBundleData(pk, index){
     }).then(function (data){
       properties['tracks'][track_order] = Object.assign({}, properties['tracks'][track_order], data)
       //properties['tracks'][track_order]['global_gene2info'] = data['global_gene2info'];
-      plotBigArc(track_order, data);
       return 1
     }).catch(console.log.bind(console))
   }
@@ -713,7 +779,8 @@ function showShortName(){
 function toggleMidLock() {
   properties['mid_locked'] = !properties['mid_locked']
   if (properties['mid_locked']) {
-    properties['big_locked'] = true
+    properties['big_locked'] = false
+    toggleBigLock()
     properties['active_lock'] = 'mid'
     d3.select('.mid_cursor_toggle_lock').style('fill', 'red')
   }else {
@@ -879,12 +946,12 @@ function plotTrack(start, end, track_order, data ) {
   drawTrack('tracks', "track_"+track_order+"_border", [{'start':start, 'end':end, 'up':data['up'], 'down':data['down']}], 'white', colors[track_order], .4, xScale, data['up'], track_height)
 
   var gene_boundaries_plus; var gene_elements_plus;
-  [gene_boundaries_plus, gene_elements_plus] = findGenesWithinInterval(start, end, data, '+', false)
+  [gene_boundaries_plus, gene_elements_plus] = findGenesWithinInterval(start, end, data, '+', true)
   drawTrack('tracks', "track_"+track_order+"_plus", gene_boundaries_plus, 'whitesmoke', colors[track_order], 1, xScale, data['up'], track_height/2*.85)
   drawTrack('tracks', "track_"+track_order+"_plus_elements", gene_elements_plus, colors[track_order], 'black', .3, xScale, data['up'], track_height/2*.85)
 
   var gene_boundaries_minus; var gene_elements_minus;
-  [gene_boundaries_minus, gene_elements_minus] = findGenesWithinInterval(start, end, data, '-', false)
+  [gene_boundaries_minus, gene_elements_minus] = findGenesWithinInterval(start, end, data, '-', true)
   drawTrack('tracks', "track_"+track_order+"_minus", gene_boundaries_minus, 'whitesmoke', colors[track_order], 1, xScale, data['down']-track_height/2*.85, track_height/2*.85)
   drawTrack('tracks', "track_"+track_order+"_minus_elements", gene_elements_minus, colors[track_order], 'black', .3, xScale, data['down']-track_height/2*.85, track_height/2*.85)
 
@@ -1212,8 +1279,20 @@ function updateRainbowWithData(data) {
 
       var temp = properties['big_locked']
       properties['big_locked'] = false
-      updateMidArcWithRad(0)
+
+      if (search['change_chromosome']) {
+          properties['big_corsor_pos_in_rad'] = properties['radScale'].invert(search['genome_pos'])
+      }
+
+      updateMidArcWithRad(properties['big_corsor_pos_in_rad'])
       properties['big_locked'] = temp
+      search['change_chromosome'] = false
+
+      properties['mid_locked'] = false
+      toggleMidLock()
+      properties['big_locked'] = false
+      toggleBigLock()
+
 
     })
     .catch(console.log.bind(console))
