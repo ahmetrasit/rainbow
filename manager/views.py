@@ -17,6 +17,7 @@ from .getEnsemblGFF3 import getEnsemblGFF3 as geg3
 from .parseEnsemblGFF3 import parseEnsemblGFF3 as peg3
 from .saveEnsemblData import saveEnsemblData as sed
 from .processBEDFile import processBEDFile as pbf
+from .saveTrackFromExisting import saveTrackFromExisting as stfe
 
 from .models import *
 
@@ -219,8 +220,6 @@ def getBundleData(request, bundle):
     info = DataModelBundle.objects.filter(pk=int(bundle)).values('global_gene2info')
     return JsonResponse({**list(info)[0]}, safe=False)
 
-
-
 @login_required
 def getTrackData(request, track_pk):
     curr = DataModel.objects.filter(pk=track_pk).values('gene2info', 'interval2genes', 'rainbow2gene', 'chromosome_length')
@@ -240,7 +239,36 @@ def getEnsemblGenomeList(request, release):
     return JsonResponse(conn.getOrganismList(release), safe=False)
 
 
-@csrf_exempt
+@login_required
+def createNewTrack(request):
+    results = json.loads(request.POST['found'])
+    curr_bundles = json.loads(request.POST['curr_bundles'])
+    keyword = json.loads(request.POST['keyword'])
+    #curr = DataModel.objects.filter(data_model_bundle=int(bundle), chromosome=chrom).values('id', 'interval2blocks', 'chromosome', 'data_model_bundle')
+
+    #print(results)
+    bundle2gene = {}
+    for gene, bundle_pk, r_id, chrom in results:
+        try:
+            bundle2gene[bundle_pk][chrom].append([gene, r_id])
+        except:
+            if bundle_pk not in bundle2gene:
+                bundle2gene[bundle_pk] = {}
+                bundle2gene[bundle_pk][chrom] = [[gene, r_id]]
+            else:
+                bundle2gene[bundle_pk][chrom] = [[gene, r_id]]
+    new_track = stfe(request.user.username, bundle2gene, curr_bundles, keyword)
+    new_pk = new_track.createNewDataModelFromExisting()
+
+
+
+        #filter datamodel by bundle_pk and chrom, find the gene, gather all
+        #then send for formatting and saving
+
+    return HttpResponse('adsf')
+
+
+@login_required
 def upload(request):
     success = False
     if request.method == 'POST':

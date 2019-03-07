@@ -1,4 +1,21 @@
 //ask user for background
+// using jQuery
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 
 
 //disable scrolling using arrow keys
@@ -27,9 +44,18 @@ $(window).resize(function () {
 
 function getWidth(){
   var curr_width = $(window).width()*.99
-  return curr_width
+  if (curr_width / getHeight() <= 1.5) {
+    return curr_width
+  }else {
+    return getHeight()*1.5
+  }
 
-  //return document.getElementById("rainbow").offsetWidth
+}
+
+
+function getHeight(){
+  var curr_height = $(window).height()*.99
+  return curr_height
 }
 
 
@@ -38,7 +64,7 @@ var cache = {
   url2data : {}
 }
 var pi = Math.PI
-var colors = ['brown', 'red', 'orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal']
+var colors = ['orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal', 'brown', 'red']
 var resolutions = {'low':800*1.5, 'mid':1280*1.5, 'high':2880*1.5, 'ultra':5120*1.5}
 var properties = {
   chrom : null,
@@ -120,6 +146,7 @@ function initializeModalListeners(){
 
   $("#searchKeywordModal").on('shown.bs.modal', function(){
       $(this).find('#search_from_modal').focus();
+      d3.select('#select_searchResults').selectAll('option').remove()
   });
 
   //move active arc cursor and change zoom level
@@ -274,7 +301,7 @@ function initializeRainbow(){
   initializeSVG()
 
   var latest_tracks;
-  d3.json('http://localhost:8000/get/latestView/').then(function(data){
+  d3.json('/get/latestView/').then(function(data){
     updateRainbowWithData(data)
   })
 
@@ -308,7 +335,6 @@ function prepSearchModal() {
 
 function searchFromSVG(){
   var keyword = $.trim(document.getElementById('search_from_SVG').value)
-  console.log(keyword);
   if(keyword.length > 0){
     prepSearchModal()
   }
@@ -350,6 +376,42 @@ function searchFromModal() {
 }
 
 
+function createTrackFromAll(token) {
+  //get search results again, in case it might be trimmed because of its size
+  var keyword = $.trim(document.getElementById('search_from_modal').value)
+  var fields = search['fields'].filter(function(d){ return document.getElementById('checkbox_'+d).checked})
+  var found = searchGivenKeyword(keyword, fields).map(function(d){
+    return [d[0], properties['tracks'][d[1]].data_model_bundle, d[2].r_id, d[2].chrom]
+  })
+  createNewTrackFromGiven(found, keyword)
+}
+
+
+function createNewTrackFromGiven(found, keyword){
+  var curr_bundles = properties['tracks'].map(function(d){return d.data_model_bundle})
+  var csrftoken = getCookie('csrftoken');
+
+  var formData = new FormData();
+  formData.append('found', JSON.stringify(found))
+  formData.append('keyword', JSON.stringify(keyword))
+  formData.append('curr_bundles', JSON.stringify(curr_bundles))
+
+  var xhr = new XMLHttpRequest()
+  xhr.open('POST', '/create/track/', true);
+  xhr.setRequestHeader("X-CSRFToken", csrftoken)
+
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      //no problem
+    } else {
+      alert('Please contact admin');
+    }
+  };
+    xhr.send(formData);
+  $('#searchKeywordModal').modal('hide')
+}
+
+
 function focusSelected() {
   var selected = document.getElementById('select_searchResults')
   if (search['found_count'] > 0) {
@@ -368,6 +430,7 @@ function focusSelected() {
     if (curr) {
       document.getElementById('search_from_SVG').value = ''
       $('#searchKeywordModal').modal('hide')
+
       search['genome_pos'] = (curr.start + curr.end)/2
       if (properties['chrom'] != curr.chrom) {
         document.getElementById('chrom_list').value = curr.chrom
@@ -384,6 +447,7 @@ function focusSelected() {
       toggleMidLock()
       properties['big_locked'] = false
       toggleBigLock()
+
     }
   }
 }
@@ -456,12 +520,12 @@ function searchInGene(keyword, gene, data, fields, type){
 
 
 function getArcData(pk, index){
-  var url = 'http://localhost:8000/get/arc/'+pk
+  var url = '/get/arc/'+pk
   if (url in cache['url2data']) {
     return cache['url2data'][url]
   }else {
     var track_order = index;
-    return d3.json('http://localhost:8000/get/arc/'+pk).then(function(data){
+    return d3.json('/get/arc/'+pk).then(function(data){
       return processArcData(track_order, data);
     }).then(function (data){
       properties['tracks'][track_order] = Object.assign({}, properties['tracks'][track_order], data)
@@ -472,12 +536,12 @@ function getArcData(pk, index){
 }
 
 function getBundleData(pk, index){
-  var url = 'http://localhost:8000/get/bundle/'+pk
+  var url = '/get/bundle/'+pk
   if (url in cache['url2data']) {
     return cache['url2data'][url]
   }else {
     var track_order = index;
-    return d3.json('http://localhost:8000/get/bundle/'+pk).then(function(data){
+    return d3.json('/get/bundle/'+pk).then(function(data){
       var temp = {}
       //console.log(data['global_gene2info']);
       temp['global_gene2info'] = JSON.parse(data['global_gene2info'])
@@ -494,7 +558,7 @@ function getBundleData(pk, index){
 function getTrackData(pk, index){
   //console.log(pk, index);
   var track_order = index;
-  return d3.json('http://localhost:8000/get/track/'+pk).then(function(data){
+  return d3.json('/get/track/'+pk).then(function(data){
     return processTrackData(track_order, data);
   }).then(function (data){
     properties['tracks'][track_order] = Object.assign({}, properties['tracks'][track_order], data)
@@ -602,7 +666,7 @@ function initializeSVG(){
   var search_width = parseInt(getWidth()/6)
   var search_x = parseInt(search_width*2.5)
   var search_y = -parseInt(search_width/4)
-  console.log(search_x, search_width, search_y);
+
   g['tracks'].append('foreignObject')
                 .attr('x', search_x)
                 .attr('y', search_y)
@@ -1088,14 +1152,14 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
   for (var i = 0; i < rainbow_ids.length; i++) {
     var curr_gene = rainbow2gene[rainbow_ids[i]]
     var curr_info = gene2info[curr_gene].filter(function(d){return d.r_id == rainbow_ids[i]})[0]
-    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id, 'name':curr_gene})
+    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id, 'name':curr_info.annot.name + ' ('+curr_gene+')'})
 
     var subtypes = curr_info['interval']
     var subtypes_list = Object.keys(subtypes)
     var type = subtypes_list[0]
     for (var t = 0; t < subtypes[type].length; t++) {
       var curr = subtypes[type][t]
-      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_gene})
+      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_info.annot.name + ' ('+curr_gene+')'})
     }
 
     if (!midarc) {
@@ -1120,7 +1184,7 @@ function updateEnsemblReleaseList(){
   if (ensembl['releaseList']) {
     updateEnsemblGenomeList(ensembl['selectedRelease'])
   }else {
-    d3.json('http://localhost:8000/get/release/').then(function(data){
+    d3.json('/get/release/').then(function(data){
       return data
     }).then(function(data){
         ensembl['releaseList'] = data
@@ -1140,7 +1204,7 @@ function updateEnsemblGenomeList(release){
   if (!release) {
     d3.select('select#selectGenome').selectAll('option').remove()
     release = ensembl['selectedRelease']
-    d3.json('http://localhost:8000/get/genome/'+release).then(function(data){
+    d3.json('/get/genome/'+release).then(function(data){
       var genomeList = data[1]
 
       d3.select('select#selectGenome').selectAll('option').data(genomeList).enter()
@@ -1152,7 +1216,7 @@ function updateEnsemblGenomeList(release){
   }else if (ensembl['selectedRelease'] != release) {
     ensembl['selectedRelease'] = release
 
-    d3.json('http://localhost:8000/get/genome/'+release).then(function(data){
+    d3.json('/get/genome/'+release).then(function(data){
       var genomeList = data[1]
       d3.select('select#selectGenome').selectAll('option').remove()
       d3.select('select#selectGenome').selectAll('option').data(genomeList).enter()
@@ -1171,7 +1235,7 @@ function buildGenome(){
   var selectedRelease = document.getElementById('selectRelease').value
   var selectedGenome = document.getElementById('selectGenome').value
   if ($.inArray(selectedRelease+'/'+selectedGenome, ensembl['builtList']) == -1 ) {
-    d3.json('http://localhost:8000/build/ensembl/'+selectedRelease+'/'+selectedGenome).then(function(data){
+    d3.json('/build/ensembl/'+selectedRelease+'/'+selectedGenome).then(function(data){
       alert("Building the genome started, you'll get an e-mail when it's completed.")
       ensembl['builtList'].push(selectedRelease+'/'+selectedGenome)
       $('#addEnsemblGeneModelModal').modal('hide')
@@ -1184,7 +1248,7 @@ function buildGenome(){
 
 
 function updateSelectGenomeRelease() {
-  d3.json('http://localhost:8000/get/gene_views/').then(function(data){
+  d3.json('/get/gene_views/').then(function(data){
     return data
   }).then(function(data){
     properties['saved_views'] = data
@@ -1199,7 +1263,7 @@ function updateSelectGenomeRelease() {
 
 
 function updateSwitchGeneModel(){
-  d3.json('http://localhost:8000/get/gene_views/').then(function(data){
+  d3.json('/get/gene_views/').then(function(data){
     return data
   }).then(function(data){
     properties['saved_views'] = data
@@ -1354,7 +1418,7 @@ function sortChromosomes(chrom_list){
 
 
 function updateAddModelTrack(){
-  d3.json('http://localhost:8000/get/all_views/').then(function(data){
+  d3.json('/get/all_views/').then(function(data){
     return data
   }).then(function(data){
     properties['available_views'] = data
@@ -1600,7 +1664,7 @@ function stopMove() {
 
 
 function drawEditArc(id, data, opacity) {
-  var colors = ['brown', 'red', 'orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal']
+  var colors = ['red', 'orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal', 'brown']
   var pi = Math.PI
   var radScale = d3.scaleLinear().range([-0.5 * Math.PI * .85 , 0.5 * Math.PI]).domain([0,resolutions[properties['resolution']]])
   var arc_height = -1*properties['big_arc_height']/2

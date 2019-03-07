@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^get/bundle/([\w:]+)/$', manager_views.getBundleData, name='getBundleData'),
     url(r'^get/arc/([\w:;]+)/$', manager_views.getArcData, name='getArcData'),
     url(r'^get/track/(\d+)/$', manager_views.getTrackData, name='getTrackData'),
+    url(r'^create/track/$', manager_views.createNewTrack, name='createNewTrack'),
 
     url(r'^get/release/$', manager_views.getEnsemblReleaseList, name='getEnsemblReleaseList'),
     url(r'^get/genome/([\w_-]+)$', manager_views.getEnsemblGenomeList, name='getEnsemblGenomeList'),
