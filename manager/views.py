@@ -17,6 +17,8 @@ from .getEnsemblGFF3 import getEnsemblGFF3 as geg3
 from .parseEnsemblGFF3 import parseEnsemblGFF3 as peg3
 from .saveEnsemblData import saveEnsemblData as sed
 from .processBEDFile import processBEDFile as pbf
+from .processMetaDataFile import processMetaDataFile as pmdf
+
 from .saveTrackFromExisting import saveTrackFromExisting as stfe
 
 from .models import *
@@ -132,7 +134,7 @@ def editMainConfiguration(request):
 
 
 def processAndSaveData(target, file, short_name, description, username, post_dict):
-    processFunctions = {'GeneModel':processWormBaseGeneModel, 'BEDFiles':processBEDFile}
+    processFunctions = {'GeneModel':processWormBaseGeneModel, 'BEDFiles':processBEDFile, 'MetaDataFiles':processMetaDataFiles}
     if target in processFunctions:
         return processFunctions[target](file, short_name, description, username, post_dict)
     return 'Error, function not found'
@@ -142,6 +144,14 @@ def processBEDFile(filename, short_name, description, username, post_dict):
     release = post_dict['genome_release']
     print('release', filename, release)
     data = pbf(filename, release, short_name, description, username)
+    data.buildData()
+    print('data built')
+
+
+def processMetaDataFiles(filename, short_name, description, username, post_dict):
+    release = post_dict['genome_release']
+    print('release', filename, release)
+    data = pmdf(filename, release, short_name, description, username)
     data.buildData()
     print('data built')
 

@@ -54,7 +54,6 @@ class saveTrackFromExisting:
             DataModel.objects.filter(pk=pk).update(data_model_bundle=bundle_pk)
 
         self.curr_bundles.append(bundle_pk)
-        print(self.curr_bundles)
         saved_pk = SavedView.objects.create(
                     short_name = '{}-{}-{}'.format(self.keyword+' query results', self.getGenomeShortName(self.genome), self.version) ,
                     description = 'Genes of {}, {} from {}'.format(self.getGenomeShortName(self.genome), self.version, self.keyword+' query results') ,
@@ -114,9 +113,7 @@ class saveTrackFromExisting:
         for bundle_pk in bundle2gene:
             curr_chrom2data, curr_chrom2len = self.getGene2Info(bundle_pk, bundle2gene)
             chrom2len = {**chrom2len, **curr_chrom2len}
-            print(chrom2len.keys())
-            print(curr_chrom2len.keys())
-            print()
+            
             for chrom in curr_chrom2data:   #merging gene2info from different bundles, if any
                 if chrom not in chrom2data:
                     chrom2data[chrom] = {}

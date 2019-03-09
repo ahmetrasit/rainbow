@@ -64,10 +64,18 @@
                   <ul class="dropdown-menu">
 
                     <li><a class="nav-link text-primary" href="#addEnsemblGeneModelModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Ensembl Gene Model</a></li>
-                    <li><a class="nav-link text-primary" href="#addBEDFilesModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Add Data in BED format</a></li>
-                    <li><a class="nav-link text-primary" href="#addGeneModelModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Custom Gene Model</a></li>
+                    <li><a class="nav-link text-primary" href="#addBEDFilesModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Data in BED format</a></li>
+                    <li><a class="nav-link text-primary" href="#addMetaDataModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Meta Data</a></li>
                   </ul>
                 </li>
+
+                <li class="dropdown">
+                  <a href="#" class="dropdown-toggle col-md-1" data-toggle="dropdown">Add<b class="caret"></b></a>
+                  <ul class="dropdown-menu">
+                    <li><a class="nav-link text-primary" href="#updateMetaDataModal" data-toggle="modal" role="button" aria-haspopup="true" aria-expanded="false">Meta Data</a></li>
+                  </ul>
+                </li>
+
                 <li class="dropdown">
                   <a href="#" class="dropdown-toggle col-md-1" data-toggle="dropdown">Change<b class="caret"></b></a>
                   <ul class="dropdown-menu">
@@ -136,6 +144,8 @@
         {% include "templates/_switchGeneModelModal.html" %}
         {% include "templates/_addModelTrackModal.html" %}
         {% include "templates/_searchKeywordModal.html" %}
+        {% include "templates/_addMetaDataModal.html" %}
+        {% include "templates/_updateMetaDataModal.html" %}
 
 
 

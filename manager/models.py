@@ -68,3 +68,17 @@ class Task(models.Model):
     status = models.TextField(default='started')
     created_on = models.DateTimeField(auto_now=True)
     finished_on = models.DateTimeField(default=None, blank=True, null=True)
+
+
+class MetaData(models.Model):
+    file = models.TextField(default=None, blank=True, null=True)
+    source = models.TextField()
+    target = models.TextField()
+    short_name = models.TextField()
+    description = models.TextField()
+    mapping = models.TextField()
+    version = models.TextField(default=None, blank=True, null=True)
+    organism = models.TextField(default=None, blank=True, null=True)
+    reference_model = models.IntegerField(default=None, blank=True, null=True)
+    created_by = models.TextField()
+    created_on = models.DateTimeField(auto_now=True)

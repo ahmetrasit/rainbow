@@ -141,8 +141,13 @@ function initializeModalListeners(){
   })
 
   $('#addBEDFilesModal').on('show.bs.modal', function (e) {
-    updateSelectGenomeRelease()
+    updateSelectGenomeRelease('select_genome_release')
   })
+
+  $('#addMetaDataModal').on('show.bs.modal', function (e) {
+    updateSelectGenomeRelease('select_genome_release_metadata')
+  })
+
 
   $("#searchKeywordModal").on('shown.bs.modal', function(){
       $(this).find('#search_from_modal').focus();
@@ -465,7 +470,6 @@ function searchGivenKeyword(keyword, fields, keys = null, type='exact') {
         curr = curr.filter(function(d){return keys.indexOf(d)>-1})
     }
     for (var gene in curr) {
-      //console.log(gene);
       if(searchInGene(keyword, gene, curr[gene], fields, type)){
         var output = searchInsideGivenGene(track_order, keyword, gene, curr[gene], fields, type)
         found = found.concat(output)
@@ -1034,6 +1038,8 @@ function showElementName(d) {
                 .style('font-size', '.9em')
                 .style('text-anchor', 'middle')
                 .text(d.name)
+  console.log(d.description);
+
 }
 
 
@@ -1152,7 +1158,7 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
   for (var i = 0; i < rainbow_ids.length; i++) {
     var curr_gene = rainbow2gene[rainbow_ids[i]]
     var curr_info = gene2info[curr_gene].filter(function(d){return d.r_id == rainbow_ids[i]})[0]
-    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'r_id':curr_info.r_id, 'name':curr_info.annot.name + ' ('+curr_gene+')'})
+    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'description':curr_info.annot.description, 'r_id':curr_info.r_id, 'name':curr_info.annot.name + ' ('+curr_gene+')'})
 
     var subtypes = curr_info['interval']
     var subtypes_list = Object.keys(subtypes)
@@ -1247,13 +1253,13 @@ function buildGenome(){
 }
 
 
-function updateSelectGenomeRelease() {
+function updateSelectGenomeRelease(id) {
   d3.json('/get/gene_views/').then(function(data){
     return data
   }).then(function(data){
     properties['saved_views'] = data
-    d3.select('select#select_genome_release').selectAll('option').remove()
-    d3.select('select#select_genome_release').selectAll('option').data(data).enter()
+    d3.select('select#'+id).selectAll('option').remove()
+    d3.select('select#'+id).selectAll('option').data(data).enter()
       .append('option')
         .property('value', function(d,i){return d['pk']})
         .property('text', function(d,i){return d['short_name']})
@@ -1664,7 +1670,6 @@ function stopMove() {
 
 
 function drawEditArc(id, data, opacity) {
-  var colors = ['red', 'orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal', 'brown']
   var pi = Math.PI
   var radScale = d3.scaleLinear().range([-0.5 * Math.PI * .85 , 0.5 * Math.PI]).domain([0,resolutions[properties['resolution']]])
   var arc_height = -1*properties['big_arc_height']/2
@@ -1672,10 +1677,35 @@ function drawEditArc(id, data, opacity) {
   var arc_middle = getArcFunction(data['inner']+arc_height, data['inner']+arc_height, radScale)
   drawBlocks('big_arc', "edit edit_"+id+" blocks_"+id+"_border", [[0,resolutions[properties['resolution']] ]], colors[edit['order'].indexOf(id)], 'black', 1, arc_border)
   d3.selectAll('.edit').style('opacity', opacity)
-  drawBlocks('big_arc', "edit edit_"+id+" blocks_"+id+"_innerborder", [[0,resolutions[properties['resolution']] ]], 'none', 'grey', 1, arc_middle)
+  //drawBlocks('big_arc', "edit edit_"+id+" blocks_"+id+"_innerborder", [[0,resolutions[properties['resolution']] ]], 'none', 'grey', 1, arc_middle)
   var startAngle = -0.5 * Math.PI * .83
   var endAngle = 0.5 * Math.PI * 1
   addPathText(id, data, 'white', data['short_name'], startAngle, endAngle)
+
+  var deleteRadScale = d3.scaleLinear().range([-0.5 * Math.PI , -0.5 * Math.PI * .86]).domain([0,resolutions[properties['resolution']]])
+  var arc_delete = getArcFunction(data['inner'], data['outer'], deleteRadScale)
+  drawBlocks('big_arc', "remove remove_"+id+" blocks_"+id+"_remove", [[0,resolutions[properties['resolution']] ]], 'red', 'black', 1, arc_delete)
+  var startAngle = -0.5 * Math.PI
+  var endAngle = -0.5 * Math.PI * .85
+  addPathText('remove_'+id, data, 'white', 'remove', startAngle, endAngle)
+
+  d3.selectAll('.remove_'+id).on('click', removeTrack)
+  d3.selectAll('.remove').on('click', removeTrack)
+}
+
+
+function removeTrack() {
+  var curr_id = $(this).attr('class').split(" ")[1].replace("remove_", '')
+  var track_order = properties['tracks'].findIndex(function(d,i){return d.id==curr_id})
+  properties['tracks'].splice(track_order, 1);
+  var cache = {
+    chrom2data : {},
+    url2data : {}
+  }
+  document.getElementById('editCheckbox').checked = false
+  toggleEditMode()
+  //initializeSVG()
+  //plotAll()
 
 }
 
