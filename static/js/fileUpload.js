@@ -14,7 +14,8 @@ function getCookie(name) {
     return cookieValue;
 }
 
-var fileSelect = document.getElementById('file-select');
+var fileSelectBED = document.getElementById('file-select-BED');
+var fileSelectMetaData = document.getElementById('file-select-MetaData');
 var selected_files
 var file_types
 var data_type = ''
@@ -22,10 +23,10 @@ var data_type = ''
 
 
 
-fileSelect.onchange = function(event){
+fileSelectBED.onchange = function(event){
   selected_files = []
   file_types = new Set()
-  var files = fileSelect.files;
+  var files = fileSelectBED.files;
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
     selected_files.push(file.name)
@@ -36,18 +37,46 @@ fileSelect.onchange = function(event){
 
   if (selected_files.length == 1) {
 
-    $('#file_label').html(selected_files)
+    $('#file_label-BED').html(selected_files)
     d3.select('.custom-file').style('box-shadow', 'none')
   }else if (selected_files.length > 1) {
 
-    $('#file_label').html(selected_files.length + ' files selected')
+    $('#file_label-BED').html(selected_files.length + ' files selected')
     d3.select('.custom-file').style('box-shadow', 'none')
   }else {
-      $('#file_label').html('Choose file')
+      $('#file_label-BED').html('Choose file')
   }
 }
 
 
+fileSelectMetaData.onchange = function(event){
+  selected_files = []
+  file_types = new Set()
+  var files = fileSelectMetaData.files;
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    selected_files.push(file.name)
+    file_types.add(file.name.replace(/^.+\./, ''))
+
+    console.log(file_types)
+  }
+
+  if (selected_files.length == 1) {
+
+    $('#file_label-MetaData').html(selected_files)
+    d3.select('.custom-file').style('box-shadow', 'none')
+  }else if (selected_files.length > 1) {
+
+    $('#file_label-MetaData').html(selected_files.length + ' files selected')
+    d3.select('.custom-file').style('box-shadow', 'none')
+  }else {
+      $('#file_label-MetaData').html('Choose file')
+  }
+}
+
+
+
+/*
 function prepareFields(sample_other_fields) {
   sample_other_fields = sample_other_fields || [];
   var sample_input_fields = ['sample name', 'type', 'description'].concat(sample_other_fields)
@@ -61,8 +90,9 @@ function prepareFields(sample_other_fields) {
 
   }
 }
+*/
 
-
+/*
 function addSampleInputPerFile(sample_input_fields) {
   d3.selectAll('.show_also_filename').selectAll('div').remove()
   var curr_input = d3.selectAll('.show_also_filename').selectAll('div').data(selected_files).enter()
@@ -89,14 +119,16 @@ function addSampleInputPerSample(sample_input_fields, active) {
   curr_input.append('div').attr('class', 'input-group-append')
     .append('span').on('click', removeThis).attr('class', 'input-group-text btn btn-danger').html('<i class="fas fa-trash-alt"></i>')
 }
-
+*/
 
 function checkLength() {
+/*
   if (this.value.length > 0) {
     this.style['box-shadow'] = 'none'
   }else {
     this.style['box-shadow'] = 'inset 0px 0px 3px 3px red'
   }
+*/
 }
 
 
@@ -128,8 +160,12 @@ function activeInputsNotEmpty() {
 
 
 function uploadFiles(target){
+  var target2fileSelect = {'BED':fileSelectBED, 'MetaData':fileSelectMetaData}
+  var fileSelect = target2fileSelect[target]
+  console.log(target);
 
   var files = fileSelect.files;
+  console.log(files);
   var formData = new FormData();
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
@@ -138,12 +174,12 @@ function uploadFiles(target){
   }
 
   formData.append('target', target)
-  formData.append('description', $('#description').val())
-  formData.append('short_name', $('#short_name').val())
-  formData.append('genome_release', $('#select_genome_release').val())
-  $('#description').val('')
-  $('#short_name').val('')
-  $('#select_genome_release').val('')
+  formData.append('description', $('#description-'+target).val())
+  formData.append('short_name', $('#short_name-'+target).val())
+  formData.append('genome_release', $('#select_genome_release-'+target).val())
+  $('#description-'+target).val('')
+  $('#short_name-'+target).val('')
+  $('#select_genome_release-'+target).val('')
 
 
   var xhr = new XMLHttpRequest()
@@ -155,7 +191,7 @@ function uploadFiles(target){
   function onProgress(e) {
     if (e.lengthComputable) {
       var perc = parseInt(100 * e.loaded / e.total)
-      $('#progressbar').attr('style', 'width:'+perc+'%')
+      $('#progressbar-'+target).attr('style', 'width:'+perc+'%')
     }
   }
 
@@ -169,21 +205,28 @@ function uploadFiles(target){
   };
 
   xhr.onloadstart = function (e) {
-      $('#progress-bar-container').attr('style', 'visibility:visible')
+      $('#progress-bar-container-'+target).attr('style', 'visibility:visible')
   }
   xhr.onloadend = function (e) {
-      $('#progress-bar-container').attr('style', 'visibility:hidden')
+      $('#progress-bar-container-'+target).attr('style', 'visibility:hidden')
   }
 
   if (fileSelect.files.length > 0) {
     if (activeInputsNotEmpty()) {
       xhr.send(formData);
-      $('#file_label').html('Choose file')
+      $('#file_label-'+target).html('Choose file')
       d3.selectAll('.noof_inputs').style('display', 'none')
-      $('#' + target + 'Modal').modal('hide')
+      if (target=='BED') {
+          $('#addBEDFilesModal').modal('hide')
+      }else if (target='MetaData') {
+        $('#addMetaDataModal').modal('hide')
+
+      }
+
     }
   }else {
-    d3.select('.custom-file').style('box-shadow', '0px 0px 3px 3px red')
+
+    d3.select('.custom-file-'+target).style('box-shadow', '0px 0px 3px 3px red')
   }
 
 }
@@ -192,7 +235,7 @@ function uploadFiles(target){
 function uploadFileTypeChange(){
 }
 
-
+/*
 function prepareUploadSteps(upload_steps, data_type) {
   var data_categories_select = document.getElementById('data_categories_select')
   var curr_data_category = data_categories_select.options[data_categories_select.selectedIndex]
@@ -221,3 +264,4 @@ function prepareUploadSteps(upload_steps, data_type) {
     }
   }
 }
+*/

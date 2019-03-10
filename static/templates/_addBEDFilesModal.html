@@ -13,8 +13,8 @@
           <div class="col-md-12">
             <div class="input-group mb-3">
               <div class="custom-file">
-                <input type="file" class="custom-file-input" id="file-select" name="filesToUpload" multiple>
-                <label id="file_label" class="custom-file-label text-left" for="inputGroupFile02">Select BED file(s)</label>
+                <input type="file" class="custom-file-input" id="file-select-BED" name="filesToUploadBED" multiple>
+                <label id="file_label-BED" class="custom-file-label text-left" for="inputGroupFile02">Select BED file(s)</label>
               </div>
             </div>
           </div>
@@ -23,15 +23,15 @@
 
         <div class="row">
           <div class="col-md-12 input-group ">
-              <select class="form-control" id="select_genome_release" name="select_genome_release">
+              <select class="form-control" id="select_genome_release-BED" name="select_genome_release">
               </select>
 
           </div>
           <div class="col-md-12 input-group ">
-                <input type="text" class="form-control" id="short_name" name="short_name" onkeyup="checkLength()" placeholder="Enter a short name for the data" data-bv-notempty>
+                <input type="text" class="form-control" id="short_name-BED" name="short_name" onkeyup="checkLength()" placeholder="Enter a short name for the data" data-bv-notempty>
           </div>
           <div class="col-md-12 input-group ">
-                <input type="text" class="form-control" id="description" name="description" onkeyup="checkLength()" placeholder="Enter description for the data" data-bv-notempty>
+                <input type="text" class="form-control" id="description-BED" name="description" onkeyup="checkLength()" placeholder="Enter description for the data" data-bv-notempty>
           </div>
         </div>
 
@@ -39,7 +39,7 @@
 
         <div class="row">
           <div class="col-md-12">
-            <div class="progress" id="progress-bar-container">
+            <div class="progress" id="progress-bar-container-BED">
               <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;" id="progressbar"></div>
             </div>
           </div>
@@ -60,7 +60,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button class="btn input-group-text" id="upload-button" onclick="uploadFiles('addBEDFiles')">Upload</button>
+        <button class="btn input-group-text" id="upload-button" onclick="uploadFiles('BED')">Upload</button>
       </div>
     </div>
   </div>

@@ -134,7 +134,8 @@ def editMainConfiguration(request):
 
 
 def processAndSaveData(target, file, short_name, description, username, post_dict):
-    processFunctions = {'GeneModel':processWormBaseGeneModel, 'BEDFiles':processBEDFile, 'MetaDataFiles':processMetaDataFiles}
+    print('target', target)
+    processFunctions = {'GeneModel':processWormBaseGeneModel, 'BED':processBEDFile, 'MetaData':processMetaDataFiles}
     if target in processFunctions:
         return processFunctions[target](file, short_name, description, username, post_dict)
     return 'Error, function not found'
@@ -212,6 +213,24 @@ def getSavedAllViews(request):
     #df = pd.DataFrame(list(saved_views)).sort_values(['organism', 'version', 'short_name'])
 
     return JsonResponse(list(saved_views), safe=False)
+
+
+@login_required
+def getAllMetaData(request):
+    username = request.user.username
+    #print(username)
+    metadata = MetaData.objects.filter( (Q(access='public') | Q(created_by=username))).values('pk', 'source', 'target', 'short_name', 'description', 'version', 'organism', 'reference_model', 'created_by')
+
+    return JsonResponse(list(metadata), safe=False)
+
+
+@login_required
+def getMetaData(request, pk):
+    username = request.user.username
+    #print(username)
+    metadata = MetaData.objects.filter(pk=pk).values('pk', 'source', 'target', 'short_name', 'description', 'mapping', 'version', 'organism', 'reference_model', 'created_by')
+
+    return JsonResponse(list(metadata), safe=False)
 
 
 

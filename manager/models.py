@@ -71,6 +71,7 @@ class Task(models.Model):
 
 
 class MetaData(models.Model):
+    access = models.CharField(max_length=128, default='public')
     file = models.TextField(default=None, blank=True, null=True)
     source = models.TextField()
     target = models.TextField()

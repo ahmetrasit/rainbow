@@ -28,6 +28,9 @@ urlpatterns = [
     url(r'^build/ensembl/([\w_-]+)/([\w_-]+)$', manager_views.buildEnsemblGenome, name='buildEnsemblGenome'),
     url(r'^get/gene_views/$', manager_views.getSavedGeneViews, name='getSavedGeneViews'),
     url(r'^get/all_views/$', manager_views.getSavedAllViews, name='getSavedAllViews'),
+    url(r'^get/all_metadata/$', manager_views.getAllMetaData, name='getAllMetaData'),
+    url(r'^get/metadata/(\d+)/$', manager_views.getMetaData, name='getMetaData'),
+
 
 
 

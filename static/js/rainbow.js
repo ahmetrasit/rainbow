@@ -141,11 +141,15 @@ function initializeModalListeners(){
   })
 
   $('#addBEDFilesModal').on('show.bs.modal', function (e) {
-    updateSelectGenomeRelease('select_genome_release')
+    updateSelectGenomeRelease('select_genome_release-BED')
   })
 
   $('#addMetaDataModal').on('show.bs.modal', function (e) {
-    updateSelectGenomeRelease('select_genome_release_metadata')
+    updateSelectGenomeRelease('select_genome_release-MetaData')
+  })
+
+  $('#updateMetaDataModal').on('show.bs.modal', function (e) {
+    updateMetaDataModal()
   })
 
 
@@ -1467,6 +1471,47 @@ function updateRainbowFromAddModelTrack() {
   updateRainbowWithData([null, curr_tracks])
 
   //updateRainbow(selected_view)
+}
+
+
+
+function updateMetaDataModal(){
+  d3.json('/get/all_metadata/').then(function(data){
+    return data
+  }).then(function(data){
+    properties['available_metadata'] = data
+
+    d3.select('select#selectUpdateMetaData').selectAll('option').remove()
+    d3.select('select#selectUpdateMetaData').selectAll('option').data(data).enter()
+      .append('option')
+        .property('value', function(d,i){return d['pk']})
+        .property('text', function(d,i){return d['short_name']})
+
+      return data[0]['pk']
+    }).then(function(selected_view){
+      return updateMetaDataInfo(selected_view)
+    }).catch(console.log.bind(console))
+}
+
+
+function updateMetaDataInfo(selected_view) {
+  if (!selected_view) {
+    selected_view = document.getElementById('selectUpdateMetaData').value
+  }
+  var data = properties['available_metadata']
+  var curr_info = data.filter(function(d){return d['pk']==selected_view})[0]
+  var fields = ['description', 'version', 'organism', 'created_by']
+  d3.select('#selectupdateMetaDataInfo').selectAll('p').remove()
+  d3.select('#selectupdateMetaDataInfo').selectAll('p').data(fields).enter()
+    .append('p').html(function(d,i){return '<label><b>'+d+'</b></label><br>'+curr_info[d]})
+
+}
+
+
+function updateMetaData() {
+  for (var track_order = 0; track_order < properties['tracks'].length; i++) {
+    properties['tracks'][i]
+  }
 }
 
 

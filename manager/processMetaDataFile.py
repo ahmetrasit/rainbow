@@ -36,19 +36,19 @@ class processMetaDataFile:
 
 
 
-    def getData(self, file):
+    def buildData(self):
         mapping = {}
-        with open(file) as f:
+        with open(self.file) as f:
             lines = f.readlines()
         header = lines[0].strip().split("\t")
 
         if self.checkHeader(header):
             for line in lines[1:]:
                 fields = line.strip().split("\t")
-                if len(fields == 2):
+                if len(fields) == 2:
                     mapping[fields[0]] = fields[1]
         if len(mapping) > 0:
-            self.saveMapping(mapping)
+            self.saveMapping(header[0], header[1], mapping)
         else:
             print('problem with the meta data file')
 
@@ -63,16 +63,16 @@ class processMetaDataFile:
 
 
 
-    def saveMapping(self, file, source, target, mapping):
+    def saveMapping(self, source, target, mapping):
         saved = MetaData.objects.create(
-                    file = file,
+                    file = self.file,
                     source = source,
                     target = target,
                     short_name = self.short_name,
                     description = self.description,
                     mapping = json.dumps(mapping),
                     version = self.version,
-                    organism = self.organism,
+                    organism = self.genome,
                     reference_model = self.release_pk,
                     created_by = self.username
         )
