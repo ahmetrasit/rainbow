@@ -162,7 +162,7 @@ function activeInputsNotEmpty() {
 function uploadFiles(target){
   var target2fileSelect = {'BED':fileSelectBED, 'MetaData':fileSelectMetaData}
   var fileSelect = target2fileSelect[target]
-  console.log(target);
+  console.log('target', target);
 
   var files = fileSelect.files;
   console.log(files);

@@ -21,7 +21,7 @@ function getCookie(name) {
 //disable scrolling using arrow keys
 window.addEventListener("keydown", function(e) {
     // space and arrow keys
-    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+    if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
         e.preventDefault();
     }
 }, false);
@@ -100,7 +100,6 @@ var search = {
   fields : ['id', 'name', 'meta', 'biotype']
 }
 
-
 var edit = {
   order : null,
   curr_arc_data : null,
@@ -112,6 +111,11 @@ var edit = {
   lower : null,
   in_orbit:false
 }
+
+var metadata = {
+  curr_pks : []
+}
+
 //I don't want to use class or id names for g, so, here we are:
 var g = {'big_arc':null, 'mid_arc':null, 'tracks':null, 'mid_arc_strands':null }
 var ensembl = {'releaseList':null, 'genomeList':null, 'selectedRelease':null, 'builtList':[]}
@@ -497,7 +501,7 @@ function searchInsideGivenGene(track_order, keyword, gene, data, fields, type) {
       var add = false
       var curr = data[d]
       for (var f = 0; f < fields.length; f++) {
-        if (curr[fields[f]].indexOf(keyword) > -1 ) {
+        if (fields[f] in curr && curr[fields[f]].indexOf(keyword) > -1 ) {
           add = true
         }
       }
@@ -518,7 +522,7 @@ function searchInGene(keyword, gene, data, fields, type){
   }
   for (var d = 0; d < data.length; d++) {
     for (var f = 0; f < fields.length; f++) {
-      if (data[d][fields[f]].indexOf(keyword) > -1 ) {
+      if (data[d][fields[f]] && data[d][fields[f]].indexOf(keyword) > -1 ) {
         return true
       }
     }
@@ -681,6 +685,14 @@ function initializeSVG(){
                 .attr('width', search_width)
                 .attr('height', 30)
     .append('xhtml:div').html('<input type="text" id="search_from_SVG" class="form-control form-control-sm" oninput="searchFromSVG()" placeholder="search" data-bv-notempty style="font-size:.7em">')
+
+  var height = parseInt(getWidth()/5)
+  g['tracks'].append('foreignObject')
+                .attr('x', search_width*1.75)
+                .attr('y', -search_width*1.5)
+                .attr('width', search_width*2.5)
+                .attr('height', height)
+    .append('xhtml:div').html('<div id="svg_description" style="display:none;text-align:center;background:whitesmoke;opacity:.9; font-size:.7em; border-radius:5px; border:1px solid darkgray; height:'+height+'px">deneme</div>')
 
 }
 
@@ -1042,7 +1054,12 @@ function showElementName(d) {
                 .style('font-size', '.9em')
                 .style('text-anchor', 'middle')
                 .text(d.name)
-  console.log(d.description);
+
+  if (d.description) {
+    d3.select('#svg_description').style('display', 'block')//.style('align-items', 'center').style('justify-content', 'center')
+    document.getElementById('svg_description').innerHTML = d.description
+  }
+
 
 }
 
@@ -1052,6 +1069,8 @@ function removeElementName() {
     properties['keepElementName'] = false
   }else {
     d3.selectAll('#curr_name').remove()
+    d3.select('#svg_description').style('display', 'none')
+    document.getElementById('svg_description').innerHTML = ''
   }
 
 }
@@ -1169,7 +1188,7 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
     var type = subtypes_list[0]
     for (var t = 0; t < subtypes[type].length; t++) {
       var curr = subtypes[type][t]
-      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_info.annot.name + ' ('+curr_gene+')'})
+      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_info.annot.name + ' ('+curr_gene+')', 'description':curr_info.annot.description})
     }
 
     if (!midarc) {
@@ -1178,7 +1197,7 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
         for (var t = 0; t < subtypes[type].length; t++) {
           var curr = subtypes[type][t]
           //if ( (start >= curr[0] && curr[0]>=end) || (start >= curr[1] && curr[1]>=end)) {
-              gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length]})
+              gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_info.annot.name + ' ('+curr_gene+')', 'description':curr_info.annot.description})
           //}
 
         }
@@ -1368,6 +1387,8 @@ function updateRainbowWithData(data) {
       toggleBigLock()
 
 
+    }).then(function(){
+      updateMetaData()
     })
     .catch(console.log.bind(console))
 
@@ -1504,13 +1525,73 @@ function updateMetaDataInfo(selected_view) {
   d3.select('#selectupdateMetaDataInfo').selectAll('p').remove()
   d3.select('#selectupdateMetaDataInfo').selectAll('p').data(fields).enter()
     .append('p').html(function(d,i){return '<label><b>'+d+'</b></label><br>'+curr_info[d]})
-
 }
 
 
 function updateMetaData() {
-  for (var track_order = 0; track_order < properties['tracks'].length; i++) {
-    properties['tracks'][i]
+  for (var i = 0; i < metadata['curr_pks'].length; i++) {
+    var curr_pk = metadata['curr_pks'][i]
+    updateMetaDataGiven(curr_pk)
+  }
+}
+
+
+function updateMetaDataFromModal(){
+  metadata_pk = document.getElementById('selectUpdateMetaData').value
+  if (!(metadata_pk in metadata['curr_pks'])) {
+      metadata['curr_pks'].push(metadata_pk)
+      updateMetaDataGiven(metadata_pk)
+  }
+  $('#updateMetaDataModal').modal('hide')
+}
+
+
+function updateMetaDataGiven(metadata_pk) {
+  var url = '/get/metadata/'+metadata_pk+'/'
+  Promise.resolve(url).then(function(url){
+    if (url in cache['url2data']) {
+      var metadata = cache['url2data'][url]
+      return [metadata.source, metadata.target, JSON.parse(metadata.mapping)]
+    }else{
+      return d3.json(url).then(function(metadata){
+        cache['url2data'][url] = metadata
+        return [metadata.source, metadata.target, JSON.parse(metadata.mapping)]
+      })
+    }
+  }).then(function(data){
+      [source, target, mapping] = data
+      for (var track_order = 0; track_order < properties['tracks'].length; track_order++) {
+        updateGene2Info(track_order, source, target, mapping)
+        updateGlobalGene2Info(track_order, source, target, mapping)
+      }
+      if (search['fields'].indexOf(target)<0) {
+          search['fields'].push(target)
+      }
+    }).then(function(){
+      zoom('right')
+      zoom('left')
+    }).catch(console.log.bind(console))
+}
+
+
+function updateGene2Info(track_order, source, target, mapping) {
+  var data = properties['tracks'][track_order]['gene2info']
+  for (var gene in data) {
+    for (var i = 0; i < data[gene].length; i++) {
+      curr = data[gene][i].annot
+      curr[target] = mapping[curr[source]]
+    }
+  }
+}
+
+
+function updateGlobalGene2Info(track_order, source, target, mapping) {
+  var data = properties['tracks'][track_order]['global_gene2info']
+  for (var gene in data) {
+    for (var i = 0; i < data[gene].length; i++) {
+      curr = data[gene][i]
+      curr[target] = mapping[curr[source]]
+    }
   }
 }
 

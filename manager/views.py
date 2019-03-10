@@ -230,7 +230,7 @@ def getMetaData(request, pk):
     #print(username)
     metadata = MetaData.objects.filter(pk=pk).values('pk', 'source', 'target', 'short_name', 'description', 'mapping', 'version', 'organism', 'reference_model', 'created_by')
 
-    return JsonResponse(list(metadata), safe=False)
+    return JsonResponse(list(metadata)[0], safe=False)
 
 
 
