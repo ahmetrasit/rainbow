@@ -501,7 +501,7 @@ function searchInsideGivenGene(track_order, keyword, gene, data, fields, type) {
       var add = false
       var curr = data[d]
       for (var f = 0; f < fields.length; f++) {
-        if (fields[f] in curr && curr[fields[f]].indexOf(keyword) > -1 ) {
+        if (fields[f] in curr && curr[fields[f]] && curr[fields[f]].indexOf(keyword) > -1 ) {
           add = true
         }
       }
@@ -1166,6 +1166,7 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
   var interval2r_ids = data['interval2genes'][strand]
   var rainbow2gene = data['rainbow2gene']
   var gene2info = data['gene2info']
+  var global_gene2info = data['global_gene2info']
   var rainbow_ids = []
   var interval_start = Math.floor(start/10000)
   var interval_end = Math.floor(end/10000)
@@ -1181,14 +1182,29 @@ function findGenesWithinInterval(start, end, data, strand, midarc=false) {
   for (var i = 0; i < rainbow_ids.length; i++) {
     var curr_gene = rainbow2gene[rainbow_ids[i]]
     var curr_info = gene2info[curr_gene].filter(function(d){return d.r_id == rainbow_ids[i]})[0]
-    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'description':curr_info.annot.description, 'r_id':curr_info.r_id, 'name':curr_info.annot.name + ' ('+curr_gene+')'})
+    var name = ''
+    if (curr_info.annot.name) {
+      name = curr_info.annot.name
+    }
+
+    var copy_info = ''
+    if (global_gene2info) {
+      var curr_global = global_gene2info[curr_gene].filter(function(d){return d.r_id == rainbow_ids[i]})[0]
+      var genomewide_copies = curr_global.genomewide_copies
+      var same_chrom_copies = curr_global.same_chrom_copies
+      if (genomewide_copies > 1) {
+        copy_info = ', genome-wide # :' + genomewide_copies + ', same-chrom # :' + same_chrom_copies
+      }
+    }
+
+    gene_boundaries.push({'start':curr_info['annot']['start'], 'end':curr_info['annot']['end'], 'description':curr_info.annot.description, 'r_id':curr_info.r_id, 'name':name + ' ('+curr_gene+')' + copy_info})
 
     var subtypes = curr_info['interval']
     var subtypes_list = Object.keys(subtypes)
     var type = subtypes_list[0]
     for (var t = 0; t < subtypes[type].length; t++) {
       var curr = subtypes[type][t]
-      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':curr_info.annot.name + ' ('+curr_gene+')', 'description':curr_info.annot.description})
+      gene_elements.push({'start':curr[0], 'end':curr[1], 'r_id':curr_info.r_id, 'subtype':type, 'order':[s, subtypes_list.length], 'name':name + ' ('+curr_gene+')' + copy_info, 'description':curr_info.annot.description})
     }
 
     if (!midarc) {

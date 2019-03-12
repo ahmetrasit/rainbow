@@ -113,7 +113,7 @@ class saveTrackFromExisting:
         for bundle_pk in bundle2gene:
             curr_chrom2data, curr_chrom2len = self.getGene2Info(bundle_pk, bundle2gene)
             chrom2len = {**chrom2len, **curr_chrom2len}
-            
+
             for chrom in curr_chrom2data:   #merging gene2info from different bundles, if any
                 if chrom not in chrom2data:
                     chrom2data[chrom] = {}
@@ -216,12 +216,13 @@ class saveTrackFromExisting:
                         'strand' : annot['strand'],
                         'start' : annot['start'],
                         'end' : annot['end'],
-                        'id' : annot['id'],
-                        'name' : annot['name'],
-                        'meta' : annot['meta'],
-                        'biotype' : annot['biotype'],
-                        'description' : annot['description'],
-                        'no_of_isoforms' : len(curr['interval'].keys())
+                        'name' : annot['name'] if 'name' in annot else '',
+                        'meta' : annot['meta'] if 'meta' in annot else '',
+                        'biotype' : annot['biotype'] if 'biotype' in annot else '',
+                        'description' : annot['description'] if 'description' in annot else '',
+                        'no_of_isoforms' : len(curr['interval'].keys()),
+                        'same_chrom_copies' : annot['same_chrom_copies'] if 'same_chrom_copies' in annot else '',
+                        'genomewide_copies' : annot['genomewide_copies'] if 'genomewide_copies' in annot else '',
                 }
                 try:
                     global_gene2info[gene].append(info)

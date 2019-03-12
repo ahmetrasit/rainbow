@@ -141,7 +141,7 @@ class processBEDFile:
                 rainbow2gene[r_id] = element
                 curr = {
                         'r_id':r_id,
-                        'annot':{'chrom':chrom,'strand':strand,'start': start,'end': end,'values' : values },
+                        'annot':{'chrom':chrom,'strand':strand,'start': start,'end': end,'values': values },
                         'interval':{ '-':[ [start, end] ] }
                         }
                 try:
@@ -187,15 +187,18 @@ class processBEDFile:
         success = False
 
         trees = self.getTrees(data)
+        global_gene2info = {}
         for chrom in trees:
             print(chrom)
             gene2info, rainbow2gene, rainbow_tree = self.getGene2Info(chrom, data[chrom])
+            global_gene2info = self.add2GlobalGene2Info(chrom, gene2info, global_gene2info)
             interval2genes, interval2blocks = self.getAllData(chrom, rainbow_tree)
             pk = self.saveChromosomeData(self.file, chrom, self.chrom2len[chrom], interval2genes, interval2blocks, gene2info, rainbow2gene)
             pks.append(pk)
             Task.objects.filter(request = given_task, created_by = self.username).update(status='completed')
         if len(pks)>0:
-            bundle_pk = self.saveDataModelBundle('BED', pks, self.chrom2len.keys())
+            global_gene2info = self.countAllCopies(global_gene2info)
+            bundle_pk = self.saveDataModelBundle('BED', pks, self.chrom2len.keys(), global_gene2info)
             for pk in pks:
                 DataModel.objects.filter(pk=pk).update(data_model_bundle=bundle_pk)
             success = True
@@ -230,13 +233,14 @@ class processBEDFile:
 
 
 
-    def saveDataModelBundle(self, source, data_models, chromosome_list):
+    def saveDataModelBundle(self, source, data_models, chromosome_list, global_gene2info):
         saved = DataModelBundle.objects.create(
                     short_name = self.short_name,
                     description = '{}, built for {}-{}'.format(self.description, self.release, self.getGenomeShortName(self.genome)) ,
                     data_models = json.dumps(data_models),
                     chromosome_list = json.dumps(list(chromosome_list)),
                     biotype = self.short_name,
+                    global_gene2info = json.dumps(global_gene2info),
                     source = source,
                     type = 'data',
                     version = self.release,
@@ -250,3 +254,33 @@ class processBEDFile:
     def getGenomeShortName(self, genome):
         fields = genome.split("_")
         return fields[0].upper()[0] + '. ' + fields[1]
+
+
+    def add2GlobalGene2Info(self, chrom, local_gene2info, global_gene2info):
+        for gene in local_gene2info:
+            no_of_copies = len(local_gene2info[gene])
+            for curr in local_gene2info[gene]:
+                r_id = curr['r_id']
+                annot = curr['annot']
+                info = {
+                        'r_id' : r_id,
+                        'chrom' : chrom,
+                        'same_chrom_copies' : no_of_copies,
+                        'strand' : annot['strand'],
+                        'start' : annot['start'],
+                        'end' : annot['end'],
+                        'no_of_isoforms' : len(curr['interval'].keys())
+                }
+                try:
+                    global_gene2info[gene].append(info)
+                except:
+                    global_gene2info[gene] = [info]
+        return global_gene2info
+
+    def countAllCopies(self, global_gene2info):
+        for gene in global_gene2info:
+            print('global_gene2info',gene, len(global_gene2info[gene]))
+            genomewide_copies = len(global_gene2info[gene])
+            for curr in global_gene2info[gene]:
+                curr['genomewide_copies'] = genomewide_copies
+        return global_gene2info

@@ -128,6 +128,8 @@ class saveEnsemblData:
                 views.notifyUser(self.username, "{} from {} has no defined chromosomes, sorry, it'll not be available for visualization.".format(file, self.genome))
             '''
         if len(pks)>0:
+            global_gene2info = self.countAllCopies(global_gene2info)
+
             bundle_pk = self.saveDataModelBundle(c['source'], pks, chromosome_list, biotype, global_gene2info)
             for pk in pks:
                 DataModel.objects.filter(pk=pk).update(data_model_bundle=bundle_pk)
@@ -146,12 +148,14 @@ class saveEnsemblData:
 
     def add2GlobalGene2Info(self, chrom, local_gene2info, global_gene2info):
         for gene in local_gene2info:
+            no_of_copies = len(local_gene2info[gene])
             for curr in local_gene2info[gene]:
                 r_id = curr['r_id']
                 annot = curr['annot']
                 info = {
                         'r_id' : r_id,
                         'chrom' : chrom,
+                        'same_chrom_copies' : no_of_copies,
                         'strand' : annot['strand'],
                         'start' : annot['start'],
                         'end' : annot['end'],
@@ -205,3 +209,10 @@ class saveEnsemblData:
     def getGenomeShortName(self, genome):
         fields = genome.split("_")
         return fields[0].upper()[0] + '. ' + fields[1]
+
+    def countAllCopies(self, global_gene2info):
+        for gene in global_gene2info:
+            genomewide_copies = len(global_gene2info[gene])
+            for curr in global_gene2info[gene]:
+                curr['genomewide_copies'] = genomewide_copies
+        return global_gene2info
