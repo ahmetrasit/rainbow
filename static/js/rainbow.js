@@ -64,7 +64,7 @@ var cache = {
   url2data : {}
 }
 var pi = Math.PI
-var colors = ['orange', 'green', 'blue', 'navy', 'indigo', 'purple', 'olive', 'teal', 'brown', 'red']
+var colors = ['green', 'blue', 'olive', 'navy', 'tomato', 'orange', 'brown', 'purple', 'teal', 'indigo']
 var resolutions = {'low':800*1.5, 'mid':1280*1.5, 'high':2880*1.5, 'ultra':5120*1.5}
 var properties = {
   chrom : null,
@@ -779,7 +779,6 @@ function plotBigArc(track_order, data) {
   drawBlocks('big_arc', "big_arc blocks_"+track_order+"_minus", data['interval2blocks'][properties['resolution']]['-'], colors[track_order], 'none', 0, arc_minus)
   drawBlocks('big_arc', "big_arc blocks_"+track_order+"_innerborder", [[0,resolutions[properties['resolution']] ]], 'whitesmoke', 'lightgrey', .3, arc_middle)
 
-
   var text_arc_length_max = 19
   var curr_text_arc_ratio = 2 * data['outer']/properties['width']
   var text_arc_length = text_arc_length_max * curr_text_arc_ratio
@@ -1027,7 +1026,8 @@ function plotTrack(start, end, track_order, data ) {
   var track_height = data['track_height']
   var plusYScale = d3.scaleLinear().range([data['up'], data['up']+track_height*45]).domain([data['up'], data['down']]).clamp(true)
 
-  drawTrack('tracks', "track_"+track_order+"_border", [{'start':start, 'end':end, 'up':data['up'], 'down':data['down']}], 'white', colors[track_order], .4, xScale, data['up'], track_height)
+  drawTrack('tracks', "track_"+track_order+"_background", [{'start':start, 'end':end, 'up':data['up'], 'down':data['down']}], colors[track_order], 'black', 0, xScale, data['up'], track_height)
+  drawTrack('tracks', "track_"+track_order+"_border", [{'start':start, 'end':end, 'up':data['up'], 'down':data['down']}], 'none', colors[track_order], 1, xScale, data['up'], track_height)
 
   var gene_boundaries_plus; var gene_elements_plus;
   [gene_boundaries_plus, gene_elements_plus] = findGenesWithinInterval(start, end, data, '+', true)
@@ -1039,6 +1039,7 @@ function plotTrack(start, end, track_order, data ) {
   drawTrack('tracks', "track_"+track_order+"_minus", gene_boundaries_minus, 'whitesmoke', colors[track_order], 1, xScale, data['down']-track_height/2*.85, track_height/2*.85)
   drawTrack('tracks', "track_"+track_order+"_minus_elements", gene_elements_minus, colors[track_order], 'black', .3, xScale, data['down']-track_height/2*.85, track_height/2*.85)
 
+  d3.selectAll(".track_"+track_order+"_background").style('opacity', .1)
   d3.selectAll(".track_"+track_order+"_plus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
   d3.selectAll(".track_"+track_order+"_plus_elements").style('opacity', .8).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
   d3.selectAll(".track_"+track_order+"_minus").style('opacity', .7).on('mouseover', showElementName).on('mouseout', removeElementName).on('click', keepElementName)
@@ -1595,7 +1596,13 @@ function updateGene2Info(track_order, source, target, mapping) {
   for (var gene in data) {
     for (var i = 0; i < data[gene].length; i++) {
       curr = data[gene][i].annot
-      curr[target] = mapping[curr[source]]
+      if (curr[source] && mapping[curr[source]]) {
+        curr[target] = mapping[curr[source]]
+      }else{
+        if (mapping[gene]) {
+          curr[target] = mapping[gene]
+        }
+      }
     }
   }
 }
@@ -1606,7 +1613,13 @@ function updateGlobalGene2Info(track_order, source, target, mapping) {
   for (var gene in data) {
     for (var i = 0; i < data[gene].length; i++) {
       curr = data[gene][i]
-      curr[target] = mapping[curr[source]]
+      if (curr[source] && mapping[curr[source]]) {
+        curr[target] = mapping[curr[source]]
+      }else{
+        if (mapping[gene]) {
+          curr[target] = mapping[gene]
+        }
+      }
     }
   }
 }

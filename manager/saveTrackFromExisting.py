@@ -39,16 +39,18 @@ class saveTrackFromExisting:
         pks = []
         global_gene2info = {}
         for chrom in chrom2data:
-            gene2info = chrom2data[chrom]
-            global_gene2info = self.add2GlobalGene2Info(chrom, gene2info, global_gene2info)
-            interval2genes = {}
-            interval2blocks ={}
-            rainbow2gen = {}
-            if gene2info:
-                interval2genes, interval2blocks, rainbow2gene = self.getTrackData(chrom2len[chrom], gene2info)
-            pk = self.saveChromosomeData(chrom, chrom2len[chrom], gene2info, interval2genes, interval2blocks, rainbow2gene)
-            pks.append(pk)
-
+            if chrom in chrom2len:
+                gene2info = chrom2data[chrom]
+                global_gene2info = self.add2GlobalGene2Info(chrom, gene2info, global_gene2info)
+                interval2genes = {}
+                interval2blocks ={'low':{'+':[], '-':[]}, 'mid':{'+':[], '-':[]}, 'high':{'+':[], '-':[]}, 'ultra':{'+':[], '-':[]}}
+                rainbow2gene = {}
+                if gene2info:
+                    interval2genes, interval2blocks, rainbow2gene = self.getTrackData(chrom2len[chrom], gene2info)
+                print(chrom2len)
+                pk = self.saveChromosomeData(chrom, chrom2len[chrom], gene2info, interval2genes, interval2blocks, rainbow2gene)
+                pks.append(pk)
+        global_gene2info = self.countAllCopies(global_gene2info)
         bundle_pk = self.saveDataModelBundle('search', pks, chrom_list, self.keyword+' query results', global_gene2info)
         for pk in pks:
             DataModel.objects.filter(pk=pk).update(data_model_bundle=bundle_pk)
@@ -81,28 +83,32 @@ class saveTrackFromExisting:
         self.genome = curr_bundle['organism']
         for chrom in chroms:
             chrom2data[chrom] = {}
-            curr_model = DataModel.objects.filter(data_model_bundle=bundle_pk, chromosome=chrom).values('chromosome_length', 'gene2info')[0]
-            curr_gene2info = json.loads(curr_model['gene2info'])
-            chrom2len[chrom] = curr_model['chromosome_length']
-            if chrom in bundle2gene[bundle_pk]:
-                gene2rid = {}
-                gene2info = {}
-                for gene , r_id in bundle2gene[bundle_pk][chrom]:
-                    try:
-                        gene2rid[gene].append(r_id)
-                    except:
-                        gene2rid[gene] = [r_id]
+            curr_model = DataModel.objects.filter(data_model_bundle=bundle_pk, chromosome=chrom).values('chromosome_length', 'gene2info')
+            if curr_model:
+                curr_model = curr_model[0]
+                curr_gene2info = json.loads(curr_model['gene2info'])
+                chrom2len[chrom] = curr_model['chromosome_length']
+                if chrom in bundle2gene[bundle_pk]:
+                    gene2rid = {}
+                    gene2info = {}
+                    for gene , r_id in bundle2gene[bundle_pk][chrom]:
+                        try:
+                            gene2rid[gene].append(r_id)
+                        except:
+                            gene2rid[gene] = [r_id]
 
 
-                filtered_genes = [gene for gene in curr_gene2info if gene in gene2rid]
-                for gene in filtered_genes:
-                    for curr in curr_gene2info[gene]:
-                        if curr['r_id'] in gene2rid[gene]:
-                            try:
-                                gene2info[gene].append(curr)
-                            except:
-                                gene2info[gene] = [curr]
-                chrom2data[chrom] = gene2info
+                    filtered_genes = [gene for gene in curr_gene2info if gene in gene2rid]
+                    for gene in filtered_genes:
+                        for curr in curr_gene2info[gene]:
+                            if curr['r_id'] in gene2rid[gene]:
+                                try:
+                                    gene2info[gene].append(curr)
+                                except:
+                                    gene2info[gene] = [curr]
+                    chrom2data[chrom] = gene2info
+
+
 
         return chrom2data, chrom2len
 
@@ -222,7 +228,6 @@ class saveTrackFromExisting:
                         'description' : annot['description'] if 'description' in annot else '',
                         'no_of_isoforms' : len(curr['interval'].keys()),
                         'same_chrom_copies' : annot['same_chrom_copies'] if 'same_chrom_copies' in annot else '',
-                        'genomewide_copies' : annot['genomewide_copies'] if 'genomewide_copies' in annot else '',
                 }
                 try:
                     global_gene2info[gene].append(info)
@@ -266,3 +271,11 @@ class saveTrackFromExisting:
     def getGenomeShortName(self, genome):
         fields = genome.split("_")
         return fields[0].upper()[0] + '. ' + fields[1]
+
+
+    def countAllCopies(self, global_gene2info):
+        for gene in global_gene2info:
+            genomewide_copies = len(global_gene2info[gene])
+            for curr in global_gene2info[gene]:
+                curr['genomewide_copies'] = genomewide_copies
+        return global_gene2info

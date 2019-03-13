@@ -279,7 +279,6 @@ class processBEDFile:
 
     def countAllCopies(self, global_gene2info):
         for gene in global_gene2info:
-            print('global_gene2info',gene, len(global_gene2info[gene]))
             genomewide_copies = len(global_gene2info[gene])
             for curr in global_gene2info[gene]:
                 curr['genomewide_copies'] = genomewide_copies
